@@ -16,6 +16,17 @@ import { LoginDto } from './auth.dto';
 const MAX_INTENTOS = 5;
 const VENTANA_BLOQUEO_MS = 15 * 60 * 1000;
 
+/**
+ * Ventana de gracia tras una rotación de refresh token (ms).
+ *
+ * Los refrescos concurrentes (ráfaga de 401, dos pestañas, dos proveedores de
+ * sesión montados a la vez) compiten con el mismo cookie: el ganador rota el
+ * token y el perdedor llega con uno ya revocado. Dentro de esta ventana eso se
+ * trata como carrera benigna; fuera de ella es reutilización → robo → se
+ * revoca la familia entera (spec 6.1).
+ */
+const GRACE_ROTACION_MS = Number(process.env.REFRESH_REUSE_GRACE_MS ?? 30_000);
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -56,9 +67,21 @@ export class AuthService {
     const hash = sha256Hex(refreshToken);
     const sesion = await this.sesiones.findOne({ where: { refresh_hash: hash } });
 
-    if (!sesion || sesion.revocada_en) {
-      // Reutilización de token rotado → revocar toda la familia (spec 6.1).
-      if (sesion) await this.revocarFamilia(sesion.familia_id);
+    if (!sesion) throw ApiError.noAutenticado('Sesión inválida');
+
+    if (sesion.revocada_en) {
+      // El token ya fue usado y rotado. Fuera de la ventana de gracia es
+      // reutilización → revocar toda la familia (spec 6.1). Dentro, es la
+      // carrera benigna de refreshes concurrentes: se devuelve un access token
+      // sin rotar otra vez (el cookie del navegador ya apunta al hijo vivo).
+      const viva = await this.descendienteVivoEnGracia(sesion);
+      if (viva) {
+        const usuario = await this.usuarios.findOne({ where: { id: viva.usuario_id } });
+        if (usuario?.activo) {
+          return { access_token: await this.firmarAccess(usuario) };
+        }
+      }
+      await this.revocarFamilia(sesion.familia_id);
       throw ApiError.noAutenticado('Sesión inválida');
     }
     if (sesion.expira_en < new Date()) {
@@ -100,6 +123,27 @@ export class AuthService {
   }
 
   // ── internos ──────────────────────────────────────────────────────────
+
+  /**
+   * Descendiente aún vivo si la reutilización del refresh ocurre dentro de la
+   * ventana de gracia tras su rotación: carrera benigna de refreshes
+   * concurrentes, no un robo (spec 6.1). Camina la cadena de rotaciones
+   * (hijo, nieto, …) hasta el eslabón vivo; `null` si no lo hay o la ventana
+   * ya venció (reutilización real del token).
+   */
+  private async descendienteVivoEnGracia(origen: Sesion): Promise<Sesion | null> {
+    if (!origen.revocada_en || !origen.reemplazada_por) return null;
+    const edad = Date.now() - origen.revocada_en.getTime();
+    if (edad < 0 || edad > GRACE_ROTACION_MS) return null;
+    let hija = await this.sesiones.findOne({ where: { id: origen.reemplazada_por } });
+    for (let profundidad = 0; hija && profundidad < 8; profundidad++) {
+      const viva = !hija.revocada_en && hija.expira_en > new Date();
+      if (viva) return hija;
+      if (!hija.reemplazada_por) return null;
+      hija = await this.sesiones.findOne({ where: { id: hija.reemplazada_por } });
+    }
+    return null;
+  }
 
   private async emitirSesiones(usuario: Usuario, ip?: string, userAgent?: string) {
     const familiaId = randomUUID();
