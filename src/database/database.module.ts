@@ -39,6 +39,7 @@ import { TODAS_ENTIDADES } from './entities';
           signedUrlTtlSeconds: cs.get('signedUrlTtlSeconds', { infer: true }),
           publicAppUrl: cs.get('publicAppUrl', { infer: true }),
           publicApiUrl: cs.get('publicApiUrl', { infer: true }),
+          cookieSameSite: cs.get('cookieSameSite', { infer: true }),
           fileSigningSecret: cs.get('fileSigningSecret', { infer: true }),
         }),
     }),

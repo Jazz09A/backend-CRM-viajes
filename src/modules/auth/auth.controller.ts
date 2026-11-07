@@ -1,5 +1,7 @@
 import { Body, Controller, Get, Headers, HttpCode, Ip, Post, Req, Res } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { AppConfig } from '../../config/configuration';
 import { Public } from '../../common/decorators/roles.decorator';
 import { CurrentUser, UsuarioActual } from '../../common/decorators/current-user.decorator';
 import { AuthService } from './auth.service';
@@ -7,18 +9,33 @@ import { LoginDto, PasswordCambiarDto, PasswordOlvideDto, PasswordRestablecerDto
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly config: ConfigService<AppConfig, true>,
+  ) {}
 
-  /** Cookie HttpOnly con el refresh token (sólo la API la lee; el front no la toca). */
+  /**
+   * Cookie HttpOnly con el refresh token (sólo la API la lee; el front no la toca).
+   *
+   * `COOKIE_SAMESITE=none` para frontend y API en dominios distintos
+   * (Vercel ↔ Koyeb): el navegador rechaza cookies cross-site con Lax/Strict
+   * y exige Secure junto a None.
+   */
   private cookieRefresh(reply: FastifyReply, token: string | undefined, maxAgeSegundos: number) {
-    const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+    const samesite = this.config.get('cookieSameSite', { infer: true });
+    const etiqueta = samesite === 'none' ? 'None' : samesite === 'strict' ? 'Strict' : 'Lax';
+    const secure =
+      samesite === 'none' || process.env.NODE_ENV === 'production' ? '; Secure' : '';
     if (!token) {
-      reply.header('set-cookie', `refresh_token=; Path=/api/v1/auth; HttpOnly; SameSite=Lax; Max-Age=0${secure}`);
+      reply.header(
+        'set-cookie',
+        `refresh_token=; Path=/api/v1/auth; HttpOnly; SameSite=${etiqueta}; Max-Age=0${secure}`,
+      );
       return;
     }
     reply.header(
       'set-cookie',
-      `refresh_token=${encodeURIComponent(token)}; Path=/api/v1/auth; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSegundos}${secure}`,
+      `refresh_token=${encodeURIComponent(token)}; Path=/api/v1/auth; HttpOnly; SameSite=${etiqueta}; Max-Age=${maxAgeSegundos}${secure}`,
     );
   }
 

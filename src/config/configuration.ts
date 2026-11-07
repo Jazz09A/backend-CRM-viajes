@@ -22,6 +22,11 @@ export interface AppConfig {
   publicAppUrl: string;
   /** Origen público del propio API (URLs firmadas de archivos/vouchers). */
   publicApiUrl: string;
+  /**
+   * SameSite de la cookie de refresh: `lax` (mismo sitio) o `none`
+   * (frontend y API en dominios distintos; exige `Secure`).
+   */
+  cookieSameSite: 'lax' | 'strict' | 'none';
   fileSigningSecret: string;
 }
 
@@ -66,6 +71,13 @@ export function loadConfig(): AppConfig {
     signedUrlTtlSeconds: Number(process.env.SIGNED_URL_TTL_SECONDS ?? 300),
     publicAppUrl: process.env.PUBLIC_APP_URL ?? 'http://localhost:8080',
     publicApiUrl: (process.env.PUBLIC_API_URL ?? 'http://localhost:3001').replace(/\/+$/, ''),
+    cookieSameSite: (() => {
+      const v = (process.env.COOKIE_SAMESITE ?? 'lax').toLowerCase();
+      if (v !== 'lax' && v !== 'strict' && v !== 'none') {
+        throw new Error(`COOKIE_SAMESITE inválido: ${v} (usa lax|strict|none)`);
+      }
+      return v as 'lax' | 'strict' | 'none';
+    })(),
     fileSigningSecret: process.env.FILE_SIGNING_SECRET ?? 'dev-file-secret-cambiar',
   };
 }
