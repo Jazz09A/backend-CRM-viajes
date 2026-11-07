@@ -1,0 +1,51 @@
+{
+  "name": "agencia-viajes-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend CRM, formularios dinámicos y reservas — NestJS + TypeScript",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "start:dev": "ts-node --transpile-only src/main.ts",
+    "start:prod": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "seed": "ts-node --transpile-only src/database/seed.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.0.0",
+    "@fastify/multipart": "^9.4.0",
+    "@nestjs/common": "^11.1.0",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.1.0",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/platform-fastify": "^11.1.0",
+    "@nestjs/platform-ws": "^11.2.8",
+    "@nestjs/typeorm": "^11.0.0",
+    "@nestjs/websockets": "^11.2.8",
+    "better-sqlite3": "^12.2.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "exceljs": "^4.4.0",
+    "pg": "^8.16.0",
+    "playwright": "^1.65.0",
+    "qrcode": "^1.5.4",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "typeorm": "^0.3.27",
+    "uuid": "^11.1.0",
+    "ws": "^8.22.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.5",
+    "@types/ws": "^8.18.2",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  },
+  "allowScripts": {
+    "better-sqlite3@12.11.1": true,
+    "esbuild@0.28.2": true
+  }
+}
