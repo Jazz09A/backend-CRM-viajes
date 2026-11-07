@@ -1,6 +1,7 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { AppConfig } from '../config/configuration';
 import { TODAS_ENTIDADES } from './entities';
+import { MIGRATIONS } from './migrations';
 
 /**
  * Opciones de TypeORM según el driver configurado.
@@ -18,6 +19,7 @@ import { TODAS_ENTIDADES } from './entities';
 export function crearDataSourceOptions(config: AppConfig): DataSourceOptions {
   const comun: Partial<DataSourceOptions> = {
     entities: TODAS_ENTIDADES,
+    migrations: MIGRATIONS,
     synchronize: config.dbDriver === 'sqlite', // en prod: migraciones versionadas
     logging: config.nodeEnv === 'development' ? ['warn', 'error'] : ['error'],
   };

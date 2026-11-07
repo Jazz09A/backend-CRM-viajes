@@ -35,7 +35,7 @@ export class MetodoPago extends ConTimestamps {
 
   @Column('varchar', { length: 120 }) nombre!: string;
 
-  @Column('varchar', { length: 3 }) moneda!: 'USD' | 'VES' | 'USDT';
+  @Column('varchar', { length: 4 }) moneda!: 'USD' | 'VES' | 'USDT';
 
   @Column({ type: 'simple-json', default: () => "'{}'" }) datos_cuenta!: Record<string, unknown>;
 
