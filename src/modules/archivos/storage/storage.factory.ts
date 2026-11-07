@@ -16,7 +16,8 @@ export function createStorageAdapter(config: ConfigService<AppConfig, true>): Ar
   if (driver === 'local') {
     const localDir = config.get('storageLocalDir', { infer: true });
     const secret = config.get('fileSigningSecret', { infer: true });
-    return new LocalStorageAdapter(localDir, secret);
+    const publicApiUrl = config.get('publicApiUrl', { infer: true });
+    return new LocalStorageAdapter(localDir, secret, publicApiUrl);
   }
 
   if (driver === 's3') {

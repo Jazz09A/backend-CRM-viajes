@@ -14,6 +14,8 @@ export class LocalStorageAdapter implements ArchivoStorage {
   constructor(
     private readonly baseDir: string,
     private readonly signingSecret: string,
+    /** Origen público del API; si se omite la URL queda relativa (mismo origen). */
+    private readonly publicApiUrl = '',
   ) {}
 
   async put(key: string, buffer: Buffer, _mimeType: string): Promise<void> {
@@ -42,7 +44,8 @@ export class LocalStorageAdapter implements ArchivoStorage {
   async signedDownloadUrl(key: string, ttlSeconds = 300): Promise<string> {
     const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
     const sig = this.firma(key, exp);
-    return `/api/v1/archivos/local/${key}?exp=${exp}&sig=${sig}`;
+    // Absoluta cuando el frontend vive en otro origen (Vercel ↔ API).
+    return `${this.publicApiUrl}/api/v1/archivos/local/${key}?exp=${exp}&sig=${sig}`;
   }
 
   async head(key: string): Promise<{ size: number } | null> {

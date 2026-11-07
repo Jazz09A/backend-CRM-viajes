@@ -20,6 +20,8 @@ export interface AppConfig {
   s3ForcePathStyle?: string;
   signedUrlTtlSeconds: number;
   publicAppUrl: string;
+  /** Origen público del propio API (URLs firmadas de archivos/vouchers). */
+  publicApiUrl: string;
   fileSigningSecret: string;
 }
 
@@ -63,6 +65,7 @@ export function loadConfig(): AppConfig {
     s3ForcePathStyle: process.env.S3_FORCE_PATH_STYLE,
     signedUrlTtlSeconds: Number(process.env.SIGNED_URL_TTL_SECONDS ?? 300),
     publicAppUrl: process.env.PUBLIC_APP_URL ?? 'http://localhost:8080',
+    publicApiUrl: (process.env.PUBLIC_API_URL ?? 'http://localhost:3001').replace(/\/+$/, ''),
     fileSigningSecret: process.env.FILE_SIGNING_SECRET ?? 'dev-file-secret-cambiar',
   };
 }

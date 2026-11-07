@@ -38,6 +38,7 @@ import { TODAS_ENTIDADES } from './entities';
           s3ForcePathStyle: cs.get('s3ForcePathStyle', { infer: true }),
           signedUrlTtlSeconds: cs.get('signedUrlTtlSeconds', { infer: true }),
           publicAppUrl: cs.get('publicAppUrl', { infer: true }),
+          publicApiUrl: cs.get('publicApiUrl', { infer: true }),
           fileSigningSecret: cs.get('fileSigningSecret', { infer: true }),
         }),
     }),
