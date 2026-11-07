@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { afectados, filas, ph } from '../../common/sql.util';
+import { afectados, filas, max2, ph } from '../../common/sql.util';
 import { ExportacionesService } from '../exportaciones/exportaciones.service';
 import { VouchersService } from '../vouchers/vouchers.service';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
@@ -234,7 +234,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
       if (reserva.cupo_estado === 'retenido') {
         const n = reserva.cupo_pasajeros;
         await em.query(
-          `UPDATE fecha_tour SET cupos_retenidos = MAX(cupos_retenidos - ${ph(d, 0)}, 0) WHERE id = ${ph(d, 1)}`,
+          `UPDATE fecha_tour SET cupos_retenidos = ${max2(d, `cupos_retenidos - ${ph(d, 0)}`, '0')} WHERE id = ${ph(d, 1)}`,
           [n, reserva.fecha_tour_id],
         );
       }

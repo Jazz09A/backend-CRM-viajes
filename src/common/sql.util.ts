@@ -14,6 +14,16 @@ export function params(driver: DriverDb, n: number): string {
   return Array.from({ length: n }, (_, i) => ph(driver, i)).join(', ');
 }
 
+/**
+ * Mínimo/máximo binario de dos expresiones SQL.
+ *
+ * SQLite acepta `MAX(a, b)` con dos argumentos; Postgres sólo tiene `max`
+ * agregado (una columna), así que ahí se emite `GREATEST(a, b)`.
+ */
+export function max2(driver: DriverDb, a: string, b: string): string {
+  return driver === 'postgres' ? `GREATEST(${a}, ${b})` : `MAX(${a}, ${b})`;
+}
+
 /** Normaliza el resultado de `query()` a filas (ambos drivers difieren). */
 export function filas<T = Record<string, unknown>>(driver: DriverDb, res: unknown): T[] {
   if (driver === 'postgres') {

@@ -3,7 +3,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CupoMovimiento, CupoOpcion, FechaTour } from '../../database/entities';
 import { ApiError } from '../../common/errors';
-import { filas, ph } from '../../common/sql.util';
+import { filas, max2, ph } from '../../common/sql.util';
 
 export interface OpcionCupo {
   campo_id: string;
@@ -125,7 +125,7 @@ export class CuposService {
     const d = this.driver;
     await this.ds.query(
       `UPDATE fecha_tour
-       SET cupos_retenidos = MAX(cupos_retenidos - ${ph(d, 0)}, 0),
+       SET cupos_retenidos = ${max2(d, `cupos_retenidos - ${ph(d, 0)}`, '0')},
            cupos_vendidos = cupos_vendidos + ${ph(d, 1)}
        WHERE id = ${ph(d, 2)}`,
       [n, n, fechaId],
