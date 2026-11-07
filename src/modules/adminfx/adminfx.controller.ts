@@ -352,7 +352,10 @@ export class AdminFxController {
 
   @Post('firma-empresa')
   @Roles('superadmin')
-  subirFirmaEmpresa(@Body() body: { nombre: string; tamano: number }, @CurrentUser() user: UsuarioActual) {
+  subirFirmaEmpresa(
+    @Body() body: { nombre: string; tamano: number; imagen_base64?: string },
+    @CurrentUser() user: UsuarioActual,
+  ) {
     return this.service.subirFirmaEmpresa(body, user.id);
   }
 }

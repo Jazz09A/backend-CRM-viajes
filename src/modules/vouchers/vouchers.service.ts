@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import QRCode from 'qrcode';
-import { Archivo, OutboxEvento, Reserva, Voucher, Pasajero, Pago, FechaTour, Tour } from '../../database/entities';
+import { Archivo, Configuracion, Firma, OutboxEvento, Reserva, Voucher, Pasajero, Pago, FechaTour, Tour } from '../../database/entities';
 import { ApiError } from '../../common/errors';
 import { ArchivosService } from '../archivos/archivos.service';
 import { VoucherPdfService } from './voucher-pdf.service';
@@ -24,6 +24,8 @@ export class VouchersService {
     @InjectRepository(Pago) private readonly pagos: Repository<Pago>,
     @InjectRepository(FechaTour) private readonly fechas: Repository<FechaTour>,
     @InjectRepository(Tour) private readonly tours: Repository<Tour>,
+    @InjectRepository(Firma) private readonly firmas: Repository<Firma>,
+    @InjectRepository(Configuracion) private readonly configRepo: Repository<Configuracion>,
     private readonly archivosService: ArchivosService,
     private readonly pdfService: VoucherPdfService,
     private readonly config: ConfigService,
@@ -132,10 +134,11 @@ export class VouchersService {
     const reserva = await this.reservas.findOne({ where: { id: reservaId } });
     if (!reserva) throw ApiError.noEncontrado('Reserva');
 
-    const [pasajeros, pagos, fecha] = await Promise.all([
+    const [pasajeros, pagos, fecha, firmaVigente] = await Promise.all([
       this.pasajeros.find({ where: { reserva_id: reservaId }, order: { orden: 'ASC' } }),
       this.pagos.find({ where: { reserva_id: reservaId }, order: { creado_en: 'ASC' } }),
       this.fechas.findOne({ where: { id: reserva.fecha_tour_id } }),
+      this.firmas.findOne({ where: { reserva_id: reservaId, vigente: true }, order: { creado_en: 'DESC' } }),
     ]);
 
     if (!fecha) throw ApiError.noEncontrado('Fecha de tour');
@@ -144,6 +147,11 @@ export class VouchersService {
 
     const titular = pasajeros.find((p) => p.es_titular) ?? pasajeros[0];
     const verifToken = reserva.verif_token ?? '';
+
+    const [firmaEmpresaDataUrl, firmaClienteDataUrl] = await Promise.all([
+      this.dataUrlFirmaEmpresa(),
+      firmaVigente ? this.dataUrlArchivo(firmaVigente.archivo_id) : Promise.resolve(''),
+    ]);
 
     return {
       codigoReserva: reserva.codigo ?? reserva.ref_corta ?? reserva.id,
@@ -167,8 +175,31 @@ export class VouchersService {
       })),
       verifToken,
       qrDataUrl: '',
-      terminosVersion: 'v1', // TODO: obtener de la firma
+      firmaEmpresaDataUrl,
+      firmaClienteDataUrl,
+      firmaClienteNombre: titular?.nombre ?? 'Titular',
+      firmaClienteFecha: firmaVigente ? new Date(firmaVigente.firmada_en).toLocaleDateString('es-VE') : '',
+      terminosVersion: 'v1', // TODO: versión legible de los términos firmados
       emitidoEn: new Date().toLocaleString('es-VE'),
     };
+  }
+
+  /** Data URL de la firma de la empresa configurada en el panel ('', si no hay). */
+  private async dataUrlFirmaEmpresa(): Promise<string> {
+    const fila = await this.configRepo.findOne({ where: { clave: 'firma_empresa_archivo_id' } });
+    const archivoId = fila?.valor ? String(fila.valor) : '';
+    if (!archivoId) return '';
+    return this.dataUrlArchivo(archivoId);
+  }
+
+  /** Data URL PNG/JPEG de un archivo guardado en storage ('', si falla). */
+  private async dataUrlArchivo(archivoId: string): Promise<string> {
+    try {
+      const { buffer, mime } = await this.archivosService.obtenerBuffer(archivoId);
+      return `data:${mime};base64,${buffer.toString('base64')}`;
+    } catch {
+      // El archivo puede haber sido eliminado del storage: la firma queda en blanco.
+      return '';
+    }
   }
 }

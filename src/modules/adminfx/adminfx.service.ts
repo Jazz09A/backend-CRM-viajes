@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
 import { createHash } from 'crypto';
@@ -33,6 +33,7 @@ import {
 import { ApiError } from '../../common/errors';
 import { hashPassword, sha256Hex } from '../../common/crypto.util';
 import { descifrarONull } from '../../common/datos-sensibles';
+import { ArchivosService } from '../archivos/archivos.service';
 import { ReservasService } from '../reservas/reservas.service';
 import { PagosService } from '../pagos/pagos.service';
 import { ConfiguracionService } from '../configuracion/configuracion.service';
@@ -109,6 +110,7 @@ export class AdminFxService {
     private readonly cupos: CuposService,
     private readonly fechasService: FechasService,
     private readonly toursService: ToursService,
+    private readonly archivosService: ArchivosService,
   ) {}
 
   // =========================================================================
@@ -1567,6 +1569,17 @@ export class AdminFxService {
   async configuracion() {
     const mapa = await this.configService.listar();
     const config = configPublica(new Map(Object.entries(mapa)));
+
+    // Preview de la firma de la empresa: URL firmada temporal del archivo.
+    const firmaArchivoId = mapa['firma_empresa_archivo_id'];
+    if (firmaArchivoId) {
+      try {
+        config['firma_empresa_url'] = await this.archivosService.obtenerUrlFirmada(String(firmaArchivoId));
+      } catch {
+        // El archivo puede no existir en storage; sin preview.
+      }
+    }
+
     const [tasas, metodos, terminos, politicas, plantillas, promos, usuarios] = await Promise.all([
       this.tasas.find({ order: { vigente_desde: 'DESC' } }),
       this.metodos.find({ order: { orden: 'ASC' } }),
@@ -1816,10 +1829,29 @@ export class AdminFxService {
     return this.usuarioFe(u);
   }
 
-  async subirFirmaEmpresa(body: { nombre: string; tamano: number }, usuarioId: string) {
+  async subirFirmaEmpresa(
+    body: { nombre: string; tamano: number; imagen_base64?: string },
+    usuarioId: string,
+  ) {
+    let archivoId: string | null = null;
+    if (body.imagen_base64) {
+      const dataUrl = String(body.imagen_base64);
+      // Formato: data URL "data:image/png;base64,..." o base64 pelado.
+      const separador = dataUrl.indexOf(',');
+      const cabecera = separador >= 0 ? dataUrl.slice(0, separador) : '';
+      const mime = /image\/(png|jpe?g)/.exec(cabecera)?.[0] ?? 'image/png';
+      const base64 = separador >= 0 ? dataUrl.slice(separador + 1) : dataUrl;
+      const buffer = Buffer.from(base64, 'base64');
+      if (buffer.length === 0) {
+        throw new ApiError(HttpStatus.UNPROCESSABLE_ENTITY, 'FIRMA_INVALIDA', 'La imagen de la firma está vacía.');
+      }
+      const nombre = String(body.nombre ?? 'firma-empresa.png');
+      archivoId = await this.archivosService.subir(buffer, nombre, mime, 'firma_empresa', usuarioId);
+      await this.configService.guardar('firma_empresa_archivo_id', archivoId, usuarioId);
+    }
     await this.configService.guardar('firma_empresa_fecha', new Date().toISOString(), usuarioId);
     await this.configService.guardar('firma_empresa_archivo', { nombre: body.nombre, tamano: body.tamano }, usuarioId);
-    return { ok: true, fecha: new Date().toISOString() };
+    return { ok: true, fecha: new Date().toISOString(), archivo_id: archivoId };
   }
 
   // =========================================================================

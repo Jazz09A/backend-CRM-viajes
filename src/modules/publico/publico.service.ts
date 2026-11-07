@@ -9,6 +9,7 @@ import {
   EnlaceReserva,
   FechaTour,
   Firma,
+  Idempotencia,
   MetodoPago,
   Pasajero,
   Pago,
@@ -109,6 +110,7 @@ export class PublicoService {
     @InjectRepository(TourPuntoAbordaje) private readonly puntos: Repository<TourPuntoAbordaje>,
     @InjectRepository(CupoOpcion) private readonly cuposOpcion: Repository<CupoOpcion>,
     @InjectRepository(Firma) private readonly firmas: Repository<Firma>,
+    @InjectRepository(Idempotencia) private readonly idempotencias: Repository<Idempotencia>,
     @InjectRepository(Voucher) private readonly vouchers: Repository<Voucher>,
     @InjectRepository(Pago) private readonly pagos: Repository<Pago>,
     @InjectRepository(ReservaAjuste) private readonly ajustes: Repository<ReservaAjuste>,
@@ -877,8 +879,14 @@ export class PublicoService {
     return r;
   }
 
-  async confirmarResumen(token: string, body: { version?: number; total_visto_usd?: string; acepta_politica?: boolean }, _idem?: string) {
+  async confirmarResumen(token: string, body: { version?: number; total_visto_usd?: string; acepta_politica?: boolean }, idem?: string) {
     const { reserva } = await this.stateMachine.resolverPorToken(token);
+
+    // Idempotencia (spec §8.2): un reintento con la misma clave devuelve la
+    // misma respuesta sin repetir la transición ni duplicar el hold.
+    const previa = await this.respuestaIdempotente('confirmar_resumen', reserva.id, idem);
+    if (previa) return previa;
+
     const ctx = await this.cargarContexto(reserva.id);
     this.validarAbierta(ctx);
     this.validarHold(ctx);
@@ -921,7 +929,8 @@ export class PublicoService {
       },
     );
 
-    // Persistir totales y snapshot (autoridad del servidor).
+    // Persistir totales y snapshot (autoridad del servidor). La versión ya
+    // la incrementó `transicionar` (+1 exacto, sin doble bump).
     const r = await this.reservas.findOneByOrFail({ id: reserva.id });
     r.total_usd = String(resumen.total_usd);
     r.subtotal_usd = String(resumen.subtotal_usd);
@@ -929,11 +938,12 @@ export class PublicoService {
     r.descuentos_usd = String(resumen.descuento_usd);
     r.desglose = resumen._calculo as Record<string, unknown>;
     r.politica_snapshot = ctx.politica ? politicaPublica(ctx.politica) : null;
-    r.version += 1;
     await this.reservas.save(r);
 
-    const expira = r.expira_en ? r.expira_en.toISOString() : null;
-    return { total_usd: String(resumen.total_usd), expira_en: expira };
+    const expira = r.expira_en ? new Date(r.expira_en).toISOString() : null;
+    const respuesta: Record<string, unknown> = { total_usd: String(resumen.total_usd), expira_en: expira, version: r.version };
+    await this.guardarRespuestaIdempotente('confirmar_resumen', reserva.id, idem, respuesta);
+    return respuesta;
   }
 
   /** Cupos por opción: cuenta pasajeros efectivos por (campo, valor). */
@@ -990,8 +1000,14 @@ export class PublicoService {
     return terminosPublico(t.version, t.plantilla);
   }
 
-  async firmar(token: string, body: Record<string, unknown>, ip?: string, userAgent?: string) {
+  async firmar(token: string, body: Record<string, unknown>, ip?: string, userAgent?: string, idem?: string) {
     const { reserva } = await this.stateMachine.resolverPorToken(token);
+
+    // Idempotencia (spec §8.2): un reintento con la misma clave devuelve la
+    // misma respuesta sin crear otra firma ni repetir la transición.
+    const previa = await this.respuestaIdempotente('firma', reserva.id, idem);
+    if (previa) return previa;
+
     const ctx = await this.cargarContexto(reserva.id);
     this.validarAbierta(ctx);
     this.validarHold(ctx);
@@ -1008,11 +1024,37 @@ export class PublicoService {
       throw new ApiError(422, 'FIRMA_INVALIDA', 'La firma es muy pequeña o muy corta. Firma ocupando más espacio.');
     }
 
-    const imagenB64 = String(body.imagen_png_base64 ?? '');
-    const versionTerminosId = String(body.terminos_version_id ?? reserva.terminos_version_id ?? '');
+    // El frontend envía `firma_png_base64` (y aceptamos `imagen_png_base64`
+    // por compatibilidad). Antes el backend leía sólo el segundo nombre y
+    // guardaba archivos de 0 bytes.
+    const imagenB64 = String(body.firma_png_base64 ?? body.imagen_png_base64 ?? '');
+    if (!imagenB64) {
+      throw new ApiError(422, 'FIRMA_INVALIDA', 'No se recibió la imagen de la firma. Intenta de nuevo.');
+    }
+    if (imagenB64.length > 700_000) {
+      throw new ApiError(422, 'FIRMA_INVALIDA', 'La imagen de la firma es demasiado grande.');
+    }
+
+    // El frontend envía `version_terminos_id` (y aceptamos
+    // `terminos_version_id` por compatibilidad con el contrato anterior).
+    const versionTerminosId = String(
+      body.terminos_version_id ?? body.version_terminos_id ?? reserva.terminos_version_id ?? '',
+    );
     const versionTerminos = await this.terminosVersions.findOne({ where: { id: versionTerminosId } });
     if (!versionTerminos) {
       throw errorValidacion([{ campo: 'versionTerminosId', mensaje: 'No se identificó la versión de términos.' }]);
+    }
+
+    // Defensa: si ya hay una firma vigente (reintento sin clave o pestaña
+    // doble), no se crea otra; se responde con la existente.
+    const firmaExistente = await this.firmas.findOne({
+      where: { reserva_id: reserva.id, vigente: true },
+      order: { creado_en: 'DESC' },
+    });
+    if (firmaExistente) {
+      const reservaAhora = await this.reservas.findOneByOrFail({ id: reserva.id });
+      const pub = firmaPublica(firmaExistente);
+      return { ok: true, hash_imagen: pub.hash_imagen, firmada_en: pub.firmada_en, version: reservaAhora.version };
     }
 
     // Archivo de la firma (PNG en base64 → guardado local en data/files).
@@ -1038,7 +1080,56 @@ export class PublicoService {
     await this.firmas.save(firma);
     await this.stateMachine.transicionar(reserva.id, 'firmar', { tipo: 'cliente' });
     const pub = firmaPublica(firma);
-    return { ok: true, hash_imagen: pub.hash_imagen, firmada_en: pub.firmada_en };
+
+    // La transición incrementó la versión del server (fuente de verdad).
+    const reservaNueva = await this.reservas.findOneByOrFail({ id: reserva.id });
+    const respuesta: Record<string, unknown> = {
+      ok: true,
+      hash_imagen: pub.hash_imagen,
+      firmada_en: pub.firmada_en,
+      version: reservaNueva.version,
+    };
+    await this.guardarRespuestaIdempotente('firma', reserva.id, idem, respuesta);
+    return respuesta;
+  }
+
+  /** Devuelve la respuesta guardada para esa clave, o `null`. */
+  private async respuestaIdempotente(
+    endpoint: string,
+    reservaId: string,
+    clave: string | undefined,
+  ): Promise<Record<string, unknown> | null> {
+    if (!clave) return null;
+    const claveAmbito = this.claveIdempotencia(endpoint, reservaId, clave);
+    const existente = await this.idempotencias.findOne({ where: { clave_ambito: claveAmbito } });
+    return existente ? existente.respuesta : null;
+  }
+
+  /** Guarda la respuesta de una acción exitosa (ignora carreras de pestañas). */
+  private async guardarRespuestaIdempotente(
+    endpoint: string,
+    reservaId: string,
+    clave: string | undefined,
+    respuesta: Record<string, unknown>,
+  ): Promise<void> {
+    if (!clave) return;
+    try {
+      await this.idempotencias.save(
+        this.idempotencias.create({
+          clave_ambito: this.claveIdempotencia(endpoint, reservaId, clave),
+          reserva_id: reservaId,
+          endpoint,
+          respuesta,
+          creado_en: new Date(),
+        }),
+      );
+    } catch {
+      // Ya existe la clave: otro request ganó la carrera. Nada que hacer.
+    }
+  }
+
+  private claveIdempotencia(endpoint: string, reservaId: string, clave: string): string {
+    return `${endpoint}|${reservaId}|${clave}`.slice(0, 128);
   }
 
   private async guardarArchivo(reservaId: string, proposito: Archivo['proposito'], dataUrlOBase64: string, mime: string): Promise<Archivo> {

@@ -33,6 +33,12 @@ export interface VoucherTemplateData {
   verifToken: string;
   /** Data URL PNG del QR de verificación (generado localmente, sin red). */
   qrDataUrl: string;
+  /** Data URL de la imagen de firma de la empresa ('' si no está configurada). */
+  firmaEmpresaDataUrl?: string;
+  /** Data URL de la firma manuscrita del cliente ('' si no hay). */
+  firmaClienteDataUrl?: string;
+  firmaClienteNombre?: string;
+  firmaClienteFecha?: string;
   terminosVersion: string;
   emitidoEn: string;
 }
@@ -217,6 +223,54 @@ export function generarHtmlVoucher(datos: VoucherTemplateData): string {
       font-size: 9px;
       color: #9ca3af;
     }
+    .firmas {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      margin-top: 30px;
+      padding-top: 15px;
+      border-top: 1px solid #e5e7eb;
+    }
+    .firma-bloque {
+      flex: 1 1 0;
+      max-width: 280px;
+    }
+    .firma-caja {
+      position: relative;
+      height: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: flex-start;
+    }
+    .firma-caja img {
+      max-height: 64px;
+      max-width: 100%;
+      object-fit: contain;
+      margin-bottom: 2px;
+    }
+    .firma-linea {
+      border-bottom: 1.5px solid #4b5563;
+      width: 100%;
+    }
+    .firma-rol {
+      font-size: 10px;
+      font-weight: bold;
+      color: #1a1a1a;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 4px;
+    }
+    .firma-nombre {
+      font-size: 10px;
+      color: #4b5563;
+      margin-top: 1px;
+    }
+    .firma-fecha {
+      font-size: 9px;
+      color: #9ca3af;
+      margin-top: 1px;
+    }
   </style>
 </head>
 <body>
@@ -263,6 +317,27 @@ export function generarHtmlVoucher(datos: VoucherTemplateData): string {
     <div class="section-title">Pagos</div>
     ${pagosHtml}
     <div class="total">Total: $${datos.totalUsd} USD</div>
+  </div>
+
+  <div class="firmas">
+    <div class="firma-bloque">
+      <div class="firma-caja">
+        ${datos.firmaEmpresaDataUrl ? `<img src="${datos.firmaEmpresaDataUrl}" alt="Firma de la empresa">` : ''}
+        <div class="firma-linea"></div>
+      </div>
+      <div class="firma-rol">Por la empresa</div>
+      <div class="firma-nombre">Ruta Clara Viajes</div>
+      <div class="firma-fecha">Emitido: ${datos.emitidoEn}</div>
+    </div>
+    <div class="firma-bloque">
+      <div class="firma-caja">
+        ${datos.firmaClienteDataUrl ? `<img src="${datos.firmaClienteDataUrl}" alt="Firma del cliente">` : ''}
+        <div class="firma-linea"></div>
+      </div>
+      <div class="firma-rol">Por el cliente</div>
+      <div class="firma-nombre">${datos.firmaClienteNombre ?? datos.titularNombre}</div>
+      <div class="firma-fecha">${datos.firmaClienteFecha ? `Firmado: ${datos.firmaClienteFecha}` : 'Firma pendiente'}</div>
+    </div>
   </div>
 
   <div class="footer">

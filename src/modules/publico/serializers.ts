@@ -406,6 +406,7 @@ export function configPublica(mapa: Map<string, unknown>): Record<string, unknow
     documento_menores: get('documento_menores', 'opcional'),
     minutos_inactividad: Number(get('minutos_inactividad', 30)),
     ...(mapa.has('firma_empresa_fecha') ? { firma_empresa_fecha: mapa.get('firma_empresa_fecha') } : {}),
+    ...(mapa.has('firma_empresa_archivo_id') ? { firma_empresa_archivo_id: mapa.get('firma_empresa_archivo_id') } : {}),
     tour_activo_default: get('tour_activo_default', ''),
   };
 }

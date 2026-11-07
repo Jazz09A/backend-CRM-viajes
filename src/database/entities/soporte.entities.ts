@@ -47,8 +47,7 @@ export class AuditLog {
 
 @Entity('outbox_evento')
 @Index(['proximo_intento'])
-export class OutboxEvento {
-  @PrimaryGeneratedColumn('increment') id!: number;
+export class OutboxEvento {  @PrimaryGeneratedColumn('increment') id!: number;
 
   @Column('varchar', { length: 80 }) tipo!: string;
   @Column({ type: 'simple-json' }) payload!: Record<string, unknown>;
@@ -61,6 +60,29 @@ export class OutboxEvento {
 
   @Column({ type: 'int', default: 0 }) intentos!: number;
   @Column({ type: 'varchar', length: 30, transformer: IsoDateTransformer }) proximo_intento!: Date;
+  @Column({ type: 'varchar', length: 30, transformer: IsoDateTransformer }) creado_en!: Date;
+}
+
+/**
+ * Registro de idempotencia para escrituras del cliente (spec §8.2).
+ *
+ * Guarda la respuesta serializada de una acción exitosa identificada por
+ * `clave` (Idempotency-Key) y ámbito (reserva). Un reintento con la misma
+ * clave devuelve la respuesta guardada sin repetir la escritura.
+ */
+@Entity('idempotencia')
+@Index(['reserva_id', 'creado_en'])
+export class Idempotencia extends BaseEntity {
+  @Index({ unique: true })
+  @Column('varchar', { length: 128 }) clave_ambito!: string;
+
+  @Index()
+  @Column({ type: 'uuid' }) reserva_id!: string;
+
+  @Column('varchar', { length: 60 }) endpoint!: string;
+
+  @Column({ type: 'simple-json' }) respuesta!: Record<string, unknown>;
+
   @Column({ type: 'varchar', length: 30, transformer: IsoDateTransformer }) creado_en!: Date;
 }
 

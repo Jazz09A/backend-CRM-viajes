@@ -137,7 +137,13 @@ export class PublicoController {
     @Body() body: Record<string, unknown>,
     @Req() req: FastifyRequest,
   ) {
-    return this.service.firmar(token, body, req.ip, req.headers['user-agent']);
+    const idem =
+      typeof body['idempotency_key'] === 'string'
+        ? (body['idempotency_key'] as string)
+        : typeof req.headers['idempotency-key'] === 'string'
+          ? (req.headers['idempotency-key'] as string)
+          : undefined;
+    return this.service.firmar(token, body, req.ip, req.headers['user-agent'], idem);
   }
 
   // ── pagos (T5) ────────────────────────────────────────────────────────

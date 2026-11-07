@@ -3,7 +3,9 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   Archivo,
+  Configuracion,
   FechaTour,
+  Firma,
   OutboxEvento,
   Pasajero,
   Pago,
@@ -26,6 +28,8 @@ import { VoucherPdfService } from './voucher-pdf.service';
       Pago,
       FechaTour,
       Tour,
+      Firma,
+      Configuracion,
       OutboxEvento,
     ]),
     ConfigModule,

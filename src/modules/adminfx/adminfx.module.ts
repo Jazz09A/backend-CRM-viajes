@@ -7,9 +7,10 @@ import { FechasModule } from '../fechas/fechas.module';
 import { PagosModule } from '../pagos/pagos.module';
 import { ReservasModule } from '../reservas/reservas.module';
 import { ToursModule } from '../tours/tours.module';
+import { ArchivosModule } from '../archivos/archivos.module';
 
 @Module({
-  imports: [ConfiguracionModule, CuposModule, FechasModule, PagosModule, ReservasModule, ToursModule],
+  imports: [ConfiguracionModule, CuposModule, FechasModule, PagosModule, ReservasModule, ToursModule, ArchivosModule],
   controllers: [AdminFxController],
   providers: [AdminFxService],
 })

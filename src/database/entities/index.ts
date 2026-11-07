@@ -1,4 +1,4 @@
-import { AuditLog, EmailLog, NotificacionPanel, OutboxEvento, ReservaEstadoHistorial } from './soporte.entities';
+import { AuditLog, EmailLog, Idempotencia, NotificacionPanel, OutboxEvento, ReservaEstadoHistorial } from './soporte.entities';
 import { Archivo, Exportacion, Factura, Firma, Pago, Reembolso, Voucher } from './operacion.entities';
 import { Cliente, ContadorCodigo, CupoMovimiento, EnlaceReserva, Pasajero, Reserva, ReservaAjuste, ReservaLinea } from './reserva.entities';
 import { CampoBiblioteca, CupoOpcion, FechaSobrecupo, FechaTour, Tarifa, Tour, TourFormVersion, TourPuntoAbordaje } from './catalogo.entities';
@@ -24,7 +24,7 @@ export {
   Pasajero, Pago, PlantillaMensaje, PlantillaTerminos, PlantillaTerminosVersion,
   PoliticaCancelacion, Reembolso, Reserva, ReservaAjuste, ReservaEstadoHistorial,
   ReservaLinea, Sesion, TasaCambio, Tarifa, Tour, TourFormVersion, TourPuntoAbordaje,
-  Usuario, UsuarioRecoveryCode, Voucher,
+  Usuario, UsuarioRecoveryCode, Voucher, Idempotencia,
 };
 
 export const TODAS_ENTIDADES = [
@@ -37,4 +37,5 @@ export const TODAS_ENTIDADES = [
   CupoMovimiento, ContadorCodigo,
   Archivo, Firma, Pago, Reembolso, Voucher, Factura, Exportacion,
   ReservaEstadoHistorial, AuditLog, OutboxEvento, EmailLog, NotificacionPanel,
+  Idempotencia,
 ];
