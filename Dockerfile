@@ -36,7 +36,8 @@ ENV NODE_ENV=production \
 COPY --from=builder /app/node_modules ./node_modules
 
 # Chromium + libs del sistema para renderizar los vouchers a PDF.
-RUN npx playwright install --with-deps --no-shell chromium \
+# OJO: sin --no-shell: chromium.launch(headless) usa chrome-headless-shell.
+RUN npx playwright install --with-deps chromium \
   && chown -R node:node /ms-playwright
 
 COPY --from=builder /app/dist ./dist
