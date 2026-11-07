@@ -27,8 +27,12 @@ export function max2(driver: DriverDb, a: string, b: string): string {
 /** Normaliza el resultado de `query()` a filas (ambos drivers difieren). */
 export function filas<T = Record<string, unknown>>(driver: DriverDb, res: unknown): T[] {
   if (driver === 'postgres') {
-    // pg: [rows, rowCount]
-    return Array.isArray(res) && Array.isArray(res[0]) ? (res[0] as T[]) : [];
+    // TypeORM (pg) devuelve las filas directamente: [{...}, {...}].
+    // Algunos wrappers históricos devuelven [rows, rowCount].
+    if (!Array.isArray(res)) return [];
+    if (res.length === 0) return [];
+    if (Array.isArray(res[0])) return res[0] as T[];
+    return res as T[];
   }
   // better-sqlite3 vía TypeORM: devuelve el resultado directo o [result]
   if (Array.isArray(res)) {
