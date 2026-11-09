@@ -4,6 +4,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { AppConfig } from '../../config/configuration';
 import { Public } from '../../common/decorators/roles.decorator';
 import { CurrentUser, UsuarioActual } from '../../common/decorators/current-user.decorator';
+import { escribirCookieRefresh } from '../../common/refresh-cookie';
 import { AuthService } from './auth.service';
 import { LoginDto, PasswordCambiarDto, PasswordOlvideDto, PasswordRestablecerDto } from './auth.dto';
 
@@ -22,21 +23,7 @@ export class AuthController {
    * y exige Secure junto a None.
    */
   private cookieRefresh(reply: FastifyReply, token: string | undefined, maxAgeSegundos: number) {
-    const samesite = this.config.get('cookieSameSite', { infer: true });
-    const etiqueta = samesite === 'none' ? 'None' : samesite === 'strict' ? 'Strict' : 'Lax';
-    const secure =
-      samesite === 'none' || process.env.NODE_ENV === 'production' ? '; Secure' : '';
-    if (!token) {
-      reply.header(
-        'set-cookie',
-        `refresh_token=; Path=/api/v1/auth; HttpOnly; SameSite=${etiqueta}; Max-Age=0${secure}`,
-      );
-      return;
-    }
-    reply.header(
-      'set-cookie',
-      `refresh_token=${encodeURIComponent(token)}; Path=/api/v1/auth; HttpOnly; SameSite=${etiqueta}; Max-Age=${maxAgeSegundos}${secure}`,
-    );
+    escribirCookieRefresh(reply, token, maxAgeSegundos, this.config);
   }
 
   @Public()

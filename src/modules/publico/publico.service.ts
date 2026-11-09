@@ -130,6 +130,35 @@ export class PublicoService {
   ) {}
 
   // -------------------------------------------------------------------------
+  // Agencia
+  // -------------------------------------------------------------------------
+
+  /**
+   * Datos públicos de la agencia (nombre, contacto y zona horaria).
+   *
+   * Sin datos sensibles: sólo lo que la interfaz necesita para presentarse con
+   * el nombre real de la agencia (login, onboarding, panel).
+   */
+  async agencia() {
+    const [nombre, email, telefono, direccion, zona_horaria] = await Promise.all([
+      this.configService.obtener('agencia_nombre'),
+      this.configService.obtener('agencia_email'),
+      this.configService.obtener('whatsapp_agencia'),
+      this.configService.obtener('agencia_direccion'),
+      this.configService.obtener('zona_horaria'),
+    ]);
+    const texto = (valor: unknown): string | null =>
+      typeof valor === 'string' && valor.trim() ? valor.trim() : null;
+    return {
+      nombre: texto(nombre) ?? 'Ruta Clara Viajes',
+      email: texto(email),
+      telefono: texto(telefono),
+      direccion: texto(direccion),
+      zona_horaria: texto(zona_horaria) ?? 'America/Caracas',
+    };
+  }
+
+  // -------------------------------------------------------------------------
   // Carga de contexto
   // -------------------------------------------------------------------------
 

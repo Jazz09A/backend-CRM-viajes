@@ -72,6 +72,29 @@ export class ApiError extends HttpException {
     );
   }
 
+  /** El alta inicial (onboarding) ya se completó: no se admite otro admin inicial. */
+  static setupYaCompletado() {
+    return new ApiError(
+      HttpStatus.CONFLICT,
+      'SETUP_YA_COMPLETADO',
+      'La configuración inicial ya fue completada. Entra con tu cuenta de administrador.',
+    );
+  }
+
+  static demasiadasSolicitudes(
+    mensaje = 'Demasiados intentos. Espera un momento antes de volver a intentarlo.',
+    retryAfterSegundos?: number,
+  ) {
+    return new ApiError(
+      HttpStatus.TOO_MANY_REQUESTS,
+      'DEMASIADAS_SOLICITUDES',
+      mensaje,
+      undefined,
+      undefined,
+      retryAfterSegundos ? { retry_after: retryAfterSegundos } : undefined,
+    );
+  }
+
   static enlaceInvalido() {
     return new ApiError(HttpStatus.NOT_FOUND, 'ENLACE_INVALIDO', 'Este enlace no es válido o fue revocado');
   }

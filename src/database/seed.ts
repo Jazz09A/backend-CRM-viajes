@@ -58,21 +58,27 @@ export async function ejecutarSeed(ds: DataSource): Promise<void> {
     }
   }
 
-  const adminCorreo = (process.env.SEED_ADMIN_CORREO ?? 'admin@agencia.local').toLowerCase();
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'admin123';
-  const admin = await repoUsuario.findOne({ where: { correo: adminCorreo } });
-  if (!admin) {
-    await repoUsuario.save(
-      repoUsuario.create({
-        nombre: 'Super Administrador',
-        correo: adminCorreo,
-        password_hash: hashPassword(adminPassword),
-        roles: ['superadmin', 'operador', 'validador'],
-        activo: true,
-      }),
-    );
-    // eslint-disable-next-line no-console
-    console.log(`Usuario admin creado: ${adminCorreo} / ${adminPassword} (cambiar en producción)`);
+  // El administrador NO se crea por defecto: la primera vez se hace por el
+  // onboarding (`POST /setup/iniciar`), que además personaliza la agencia.
+  // Semilla explícita sólo para desarrollo/pruebas, y nunca en producción
+  // (evita credenciales conocidas en una instalación real).
+  const correoAdmin = process.env.SEED_ADMIN_CORREO?.toLowerCase();
+  const passwordAdmin = process.env.SEED_ADMIN_PASSWORD;
+  if (process.env.NODE_ENV !== 'production' && correoAdmin && passwordAdmin) {
+    const admin = await repoUsuario.findOne({ where: { correo: correoAdmin } });
+    if (!admin) {
+      await repoUsuario.save(
+        repoUsuario.create({
+          nombre: 'Super Administrador',
+          correo: correoAdmin,
+          password_hash: hashPassword(passwordAdmin),
+          roles: ['superadmin'],
+          activo: true,
+        }),
+      );
+      // eslint-disable-next-line no-console
+      console.log(`Usuario admin creado: ${correoAdmin} (sólo desarrollo)`);
+    }
   }
 }
 

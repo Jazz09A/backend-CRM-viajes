@@ -14,12 +14,43 @@ npm run seed        # datos demo (usuarios, catálogo, fechas, tarifas, promos)
 npm run start:dev   # http://localhost:3001/api/v1
 ```
 
-Otros comandos: `npm run typecheck`, `npm run build`, `npm run start:prod`.
+Otros comandos: `npm run typecheck`, `npm run build`, `npm run test`,
+`npm run start:prod`.
+
+## Primer arranque (onboarding)
+
+La instalación **no crea ningún administrador por defecto**: las credenciales
+semilla conocidas (`admin@agencia.local` / `admin123`) se eliminaron. La
+primera vez, el frontend entra a `/instalar` y crea la cuenta:
+
+- `GET /setup/estado` → `{ requiere_onboarding: boolean }` (público). Es
+  `true` mientras no exista un usuario **activo** con rol `superadmin`.
+- `POST /setup/iniciar` → crea ese administrador (contraseña con scrypt) y
+  guarda los datos de la agencia (`agencia_nombre`, `agencia_email`,
+  `agencia_direccion`, `whatsapp_agencia`, `zona_horaria`). La respuesta
+  incluye la sesión ya iniciada (access token + cookie de refresh).
+
+Sólo puede ejecutarse una vez: el arranque se reclama con la clave única
+`setup_completado` en `configuracion` dentro de una transacción, así que dos
+peticiones simultáneas producen una sola alta y la otra recibe 409
+(`SETUP_YA_COMPLETADO`). El alta tiene un límite de 5 intentos por IP cada
+15 minutos (`DEMASIADAS_SOLICITUDES`).
+
+En desarrollo, para ver el onboarding hay que sembrar sin usuarios:
+
+```bash
+SEED_DEMO=false npm run seed   # base vacía → /instalar
+```
+
+`SEED_ADMIN_CORREO` + `SEED_ADMIN_PASSWORD` siguen existiendo, pero sólo se
+aplican fuera de producción (para pruebas automatizadas).
 
 ## Autenticación
 
 - `POST /auth/login` → access token JWT + cookie HttpOnly de refresh.
 - `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/yo`.
+- `GET /public/agencia` → nombre y contacto de la agencia (público; lo fija
+  el onboarding).
 - **2FA desactivado** del flujo: no hay `/auth/2fa/*`; las columnas
   `dos_fa_activo`/`totp_secret_enc` quedan por compatibilidad.
 - Roles: `superadmin`, `operador`, `validador`, `guia` (RBAC con `@Roles`).
@@ -30,6 +61,7 @@ Otros comandos: `npm run typecheck`, `npm run build`, `npm run start:prod`.
 | Módulo | Responsabilidad |
 | --- | --- |
 | `auth` | Login/refresh/logout, bloqueo por intentos, rotación de refresh |
+| `setup` | Onboarding del primer arranque: alta del administrador inicial |
 | `publico` | Flujo público de reserva por token de enlace (`/public/*`), verificación QR |
 | `reservas` | CRUD admin, máquina de estados (`ReservaStateMachine`), timeline, enlaces |
 | `pagos` | Cola de pagos, aprobación/rechazo/reembolso, comprobantes |

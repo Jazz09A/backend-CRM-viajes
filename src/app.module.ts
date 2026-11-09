@@ -7,6 +7,7 @@ import { DatabaseModule } from './database/database.module';
 import { JwtAuthGuard, RolesGuard } from './common/guards/auth.guard';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { SetupModule } from './modules/setup/setup.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { ConfiguracionModule } from './modules/configuracion/configuracion.module';
 import { ToursModule } from './modules/tours/tours.module';
@@ -40,6 +41,7 @@ import { AdminFxModule } from './modules/adminfx/adminfx.module';
     DatabaseModule,
     HealthModule,
     AuthModule,
+    SetupModule,
     UsuariosModule,
     ConfiguracionModule,
     ToursModule,

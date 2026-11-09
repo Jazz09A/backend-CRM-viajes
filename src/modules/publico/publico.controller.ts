@@ -28,6 +28,13 @@ type ReqConReserva = FastifyRequest;
 export class PublicoController {
   constructor(private readonly service: PublicoService) {}
 
+  // ── datos de la agencia (públicos) ────────────────────────────────────
+
+  @Get('agencia')
+  agencia() {
+    return this.service.agencia();
+  }
+
   // ── lectura principal ─────────────────────────────────────────────────
 
   @Get('reserva')

@@ -9,6 +9,7 @@
     "start:dev": "ts-node --transpile-only src/main.ts",
     "start:prod": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "seed": "ts-node --transpile-only src/database/seed.ts"
   },
   "dependencies": {

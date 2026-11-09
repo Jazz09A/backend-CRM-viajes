@@ -145,7 +145,13 @@ export class AuthService {
     return null;
   }
 
-  private async emitirSesiones(usuario: Usuario, ip?: string, userAgent?: string) {
+  /**
+   * Emite una sesión nueva (access + refresh) para el usuario.
+   *
+   * Público para que el onboarding (`SetupService`) pueda dejar la sesión
+   * lista nada más crear el administrador.
+   */
+  async emitirSesiones(usuario: Usuario, ip?: string, userAgent?: string) {
     const familiaId = randomUUID();
     const sesion = await this.crearSesion(usuario.id, familiaId, ip, userAgent);
     const access = await this.firmarAccess(usuario);
