@@ -74,8 +74,29 @@ export class ArchivosService {
     if (!(this.storage instanceof LocalStorageAdapter)) return null;
     if (!this.storage.verificarFirma(key, exp, sig)) return null;
     const archivo = await this.archivos.findOne({ where: { bucket_key: key } });
-    const buffer = await this.storage.getBuffer(key);
+    let buffer: Buffer;
+    try {
+      buffer = await this.storage.getBuffer(key);
+    } catch {
+      // El archivo ya no está en el storage: 404 en vez de un 500 opaco.
+      return null;
+    }
     return { buffer, mime: archivo?.mime_real ?? 'application/octet-stream' };
+  }
+
+  /**
+   * ¿El archivo sigue en el storage? (sólo consulta el tamaño, no lo descarga).
+   * Se usa para no prometer una URL firmada de un archivo que ya no existe.
+   */
+  async existe(archivoId: string): Promise<boolean> {
+    try {
+      const archivo = await this.archivos.findOne({ where: { id: archivoId } });
+      if (!archivo) return false;
+      const head = await this.storage.head(archivo.bucket_key);
+      return head !== null;
+    } catch {
+      return false;
+    }
   }
 
   /**

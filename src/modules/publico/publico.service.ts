@@ -1041,8 +1041,14 @@ export class PublicoService {
     this.validarAbierta(ctx);
     this.validarHold(ctx);
 
+    // Los términos se aceptan una sola vez y la aceptación queda registrada en
+    // la reserva (`terminos_version_id`, ver `completarPaso('terminos')`).
+    // Exigir `scroll_completo` en cada intento hacía fallar siempre el primero:
+    // el cliente firmaba sin haber vuelto a leer los términos en esa sesión
+    // (recarga del enlace, otro dispositivo) y el backend lo rechazaba.
     const scrollCompleto = Boolean(body.scroll_completo);
-    if (!scrollCompleto) {
+    const terminosYaAceptados = Boolean(ctx.reserva.terminos_version_id);
+    if (!scrollCompleto && !terminosYaAceptados) {
       throw new ApiError(422, 'VALIDACION', 'Desplázate hasta el final de los términos para poder firmar.');
     }
     const trazos = (body.trazos ?? {}) as Record<string, unknown>;

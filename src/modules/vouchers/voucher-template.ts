@@ -37,6 +37,8 @@ export interface VoucherTemplateData {
   firmaEmpresaDataUrl?: string;
   /** Data URL de la firma manuscrita del cliente ('' si no hay). */
   firmaClienteDataUrl?: string;
+  /** `true` si hay firma registrada pero el archivo ya no está en el storage. */
+  firmaClienteArchivoPerdido?: boolean;
   firmaClienteNombre?: string;
   firmaClienteFecha?: string;
   terminosVersion: string;
@@ -249,6 +251,15 @@ export function generarHtmlVoucher(datos: VoucherTemplateData): string {
       object-fit: contain;
       margin-bottom: 2px;
     }
+    .firma-perdida {
+      font-size: 10px;
+      color: #b45309;
+      background: #fffbeb;
+      border: 1px dashed #fcd34d;
+      border-radius: 4px;
+      padding: 6px 8px;
+      margin-bottom: 2px;
+    }
     .firma-linea {
       border-bottom: 1.5px solid #4b5563;
       width: 100%;
@@ -331,7 +342,11 @@ export function generarHtmlVoucher(datos: VoucherTemplateData): string {
     </div>
     <div class="firma-bloque">
       <div class="firma-caja">
-        ${datos.firmaClienteDataUrl ? `<img src="${datos.firmaClienteDataUrl}" alt="Firma del cliente">` : ''}
+        ${datos.firmaClienteDataUrl
+          ? `<img src="${datos.firmaClienteDataUrl}" alt="Firma del cliente">`
+          : datos.firmaClienteArchivoPerdido
+            ? '<span class="firma-perdida">Firma no disponible</span>'
+            : ''}
         <div class="firma-linea"></div>
       </div>
       <div class="firma-rol">Por el cliente</div>

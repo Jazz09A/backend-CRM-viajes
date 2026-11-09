@@ -148,9 +148,11 @@ export class VouchersService {
     const titular = pasajeros.find((p) => p.es_titular) ?? pasajeros[0];
     const verifToken = reserva.verif_token ?? '';
 
-    const [firmaEmpresaDataUrl, firmaClienteDataUrl] = await Promise.all([
+    const [firmaEmpresaDataUrl, firmaCliente] = await Promise.all([
       this.dataUrlFirmaEmpresa(),
-      firmaVigente ? this.dataUrlArchivo(firmaVigente.archivo_id) : Promise.resolve(''),
+      firmaVigente
+        ? this.firmaClienteDataUrl(firmaVigente)
+        : Promise.resolve({ dataUrl: '', archivoPerdido: false }),
     ]);
 
     return {
@@ -176,7 +178,8 @@ export class VouchersService {
       verifToken,
       qrDataUrl: '',
       firmaEmpresaDataUrl,
-      firmaClienteDataUrl,
+      firmaClienteDataUrl: firmaCliente.dataUrl,
+      firmaClienteArchivoPerdido: firmaCliente.archivoPerdido,
       firmaClienteNombre: titular?.nombre ?? 'Titular',
       firmaClienteFecha: firmaVigente ? new Date(firmaVigente.firmada_en).toLocaleDateString('es-VE') : '',
       terminosVersion: 'v1', // TODO: versión legible de los términos firmados
@@ -200,6 +203,27 @@ export class VouchersService {
     } catch {
       // El archivo puede haber sido eliminado del storage: la firma queda en blanco.
       return '';
+    }
+  }
+
+  /**
+   * Imagen de la firma del cliente para el voucher.
+   *
+   * Si el archivo ya no está en el storage (p. ej. se perdió en un redeploy del
+   * contenedor), se marca `archivoPerdido` para que el PDF lo diga en lugar de
+   * dejar la casilla de la firma vacía en silencio.
+   */
+  private async firmaClienteDataUrl(
+    firma: Firma,
+  ): Promise<{ dataUrl: string; archivoPerdido: boolean }> {
+    try {
+      const { buffer, mime } = await this.archivosService.obtenerBuffer(firma.archivo_id);
+      return { dataUrl: `data:${mime};base64,${buffer.toString('base64')}`, archivoPerdido: false };
+    } catch (e) {
+      this.logger.warn(
+        `Voucher: archivo de la firma no disponible (reserva ${firma.reserva_id}): ${(e as Error).message}`,
+      );
+      return { dataUrl: '', archivoPerdido: true };
     }
   }
 }

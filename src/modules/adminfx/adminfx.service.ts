@@ -213,7 +213,14 @@ export class AdminFxService {
       ...(r.terminos_version_id || firma?.terminos_version_id
         ? { terminos_version_id: r.terminos_version_id ?? firma?.terminos_version_id }
         : {}),
-      ...(firma ? { firma: firmaPublica(firma) } : {}),
+      ...(firma
+        ? {
+            firma: {
+              ...firmaPublica(firma),
+              ...(opts.conDetalle ? await this.firmaImagenAdmin(firma) : {}),
+            },
+          }
+        : {}),
       ...(voucher
         ? { voucher: voucherPublico(voucher, '', r.verif_token ?? '') }
         : {}),
@@ -242,6 +249,28 @@ export class AdminFxService {
       out.auditoria = await this.auditoriaDe('reserva', r.id);
     }
     return out;
+  }
+
+  /**
+   * URL firmada de la imagen de la firma del cliente (panel admin).
+   *
+   * El archivo puede faltar en el storage (p. ej. se perdió en un redeploy
+   * del contenedor): se responde `imagen_disponible: false` para que el panel
+   * avise en vez de mostrar una imagen rota.
+   */
+  private async firmaImagenAdmin(
+    firma: Firma,
+  ): Promise<{ imagen_url: string; imagen_disponible: boolean }> {
+    if (!firma.archivo_id) return { imagen_url: '', imagen_disponible: false };
+    try {
+      if (!(await this.archivosService.existe(firma.archivo_id))) {
+        return { imagen_url: '', imagen_disponible: false };
+      }
+      const url = await this.archivosService.obtenerUrlFirmada(firma.archivo_id);
+      return { imagen_url: url, imagen_disponible: Boolean(url) };
+    } catch {
+      return { imagen_url: '', imagen_disponible: false };
+    }
   }
 
   /** Versión admin con datos descifrados (solo ficha de reserva). */

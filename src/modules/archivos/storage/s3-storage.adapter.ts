@@ -1,49 +1,79 @@
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ArchivoStorage } from './storage.types';
 
+/** Configuración mínima del adaptador S3-compatible. */
+export interface ConfigS3 {
+  endpoint?: string | undefined;
+  region?: string | undefined;
+  bucket?: string | undefined;
+  accessKeyId?: string | undefined;
+  secretAccessKey?: string | undefined;
+  forcePathStyle?: boolean | undefined;
+}
+
 /**
- * Adaptador S3-compatible para producción.
+ * Adaptador S3-compatible para producción (AWS S3, Cloudflare R2,
+ * Backblaze B2, MinIO…).
  *
- * Requiere:
- * - @aws-sdk/client-s3
- * - @aws-sdk/s3-request-presigner
- *
- * TODO: instalar dependencias cuando se use S3:
- * npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
+ * - `S3_ENDPOINT` + `S3_FORCE_PATH_STYLE=true` para proveedores que no usan
+ *   virtual-host style (R2, MinIO, B2).
+ * - Las descargas van por URL presignada: el navegador habla directo con el
+ *   bucket y el archivo no pasa por el API.
+ * - El cliente se inyecta en los tests (`cliente?: S3Client`).
  */
 export class S3StorageAdapter implements ArchivoStorage {
-  constructor(
-    private readonly config: {
-      endpoint?: string;
-      region?: string;
-      bucket?: string;
-      accessKeyId?: string;
-      secretAccessKey?: string;
-      forcePathStyle?: boolean;
-    },
-  ) {}
+  private readonly cliente: S3Client;
+  private readonly bucket: string;
+
+  constructor(config: ConfigS3, cliente?: S3Client) {
+    if (!config.bucket) throw new Error('S3StorageAdapter: falta S3_BUCKET');
+    this.bucket = config.bucket;
+    this.cliente =
+      cliente ??
+      new S3Client({
+        region: config.region || 'us-east-1',
+        ...(config.endpoint ? { endpoint: config.endpoint } : {}),
+        forcePathStyle: config.forcePathStyle ?? false,
+        ...(config.accessKeyId && config.secretAccessKey
+          ? {
+              credentials: {
+                accessKeyId: config.accessKeyId,
+                secretAccessKey: config.secretAccessKey,
+              },
+            }
+          : {}),
+      });
+  }
 
   async put(key: string, buffer: Buffer, mimeType: string): Promise<void> {
-    // TODO: implementar con S3Client.putObject
-    throw new Error('S3StorageAdapter.put: instalar @aws-sdk/client-s3');
+    await this.cliente.send(
+      new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: buffer, ContentType: mimeType }),
+    );
   }
 
   async getBuffer(key: string): Promise<Buffer> {
-    // TODO: implementar con S3Client.getObject
-    throw new Error('S3StorageAdapter.getBuffer: instalar @aws-sdk/client-s3');
+    const res = await this.cliente.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    if (!res.Body) throw new Error(`S3: respuesta sin cuerpo para ${key}`);
+    return Buffer.from(await res.Body.transformToByteArray());
   }
 
   async signedDownloadUrl(key: string, ttlSeconds = 300): Promise<string> {
-    // TODO: implementar con getSignedUrl del presigner
-    throw new Error('S3StorageAdapter.signedDownloadUrl: instalar @aws-sdk/s3-request-presigner');
+    return getSignedUrl(this.cliente, new GetObjectCommand({ Bucket: this.bucket, Key: key }), {
+      expiresIn: ttlSeconds,
+    });
   }
 
   async head(key: string): Promise<{ size: number } | null> {
-    // TODO: implementar con S3Client.headObject
-    throw new Error('S3StorageAdapter.head: instalar @aws-sdk/client-s3');
+    try {
+      const res = await this.cliente.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
+      return { size: res.ContentLength ?? 0 };
+    } catch {
+      return null;
+    }
   }
 
   async delete(key: string): Promise<void> {
-    // TODO: implementar con S3Client.deleteObject
-    throw new Error('S3StorageAdapter.delete: instalar @aws-sdk/client-s3');
+    await this.cliente.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 }
