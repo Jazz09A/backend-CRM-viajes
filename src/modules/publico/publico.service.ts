@@ -1072,9 +1072,15 @@ export class PublicoService {
 
     // El frontend envía `version_terminos_id` (y aceptamos
     // `terminos_version_id` por compatibilidad con el contrato anterior).
+    // Se usa `||` (no `??`) porque el cliente puede mandar cadena vacía al
+    // reabrir el enlace: en ese caso vale lo registrado en la reserva.
     const versionTerminosId = String(
-      body.terminos_version_id ?? body.version_terminos_id ?? reserva.terminos_version_id ?? '',
+      body.terminos_version_id || body.version_terminos_id || reserva.terminos_version_id || '',
     );
+    if (!versionTerminosId) {
+      // Sin guard, un id vacío llega a Postgres como cast a uuid → 500.
+      throw errorValidacion([{ campo: 'versionTerminosId', mensaje: 'No se identificó la versión de términos.' }]);
+    }
     const versionTerminos = await this.terminosVersions.findOne({ where: { id: versionTerminosId } });
     if (!versionTerminos) {
       throw errorValidacion([{ campo: 'versionTerminosId', mensaje: 'No se identificó la versión de términos.' }]);
