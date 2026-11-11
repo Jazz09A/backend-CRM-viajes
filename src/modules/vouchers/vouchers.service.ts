@@ -3,11 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import QRCode from 'qrcode';
-import { Archivo, Configuracion, Firma, OutboxEvento, Reserva, Voucher, Pasajero, Pago, FechaTour, Tour } from '../../database/entities';
+import { Archivo, Configuracion, Firma, OutboxEvento, Reserva, Voucher, Pasajero, Pago, FechaTour, Tour, PuntoSalida } from '../../database/entities';
 import { ApiError } from '../../common/errors';
 import { ArchivosService } from '../archivos/archivos.service';
 import { VoucherPdfService } from './voucher-pdf.service';
 import { generarHtmlVoucher } from './voucher-template';
+import { horaLegible } from '../reservas/domain';
 import { ph } from '../../common/sql.util';
 
 /** Vouchers PDF (spec 6.6, 8.7). La generación real corre en el worker. */
@@ -25,6 +26,7 @@ export class VouchersService {
     @InjectRepository(FechaTour) private readonly fechas: Repository<FechaTour>,
     @InjectRepository(Tour) private readonly tours: Repository<Tour>,
     @InjectRepository(Firma) private readonly firmas: Repository<Firma>,
+    @InjectRepository(PuntoSalida) private readonly puntos: Repository<PuntoSalida>,
     @InjectRepository(Configuracion) private readonly configRepo: Repository<Configuracion>,
     private readonly archivosService: ArchivosService,
     private readonly pdfService: VoucherPdfService,
@@ -148,6 +150,17 @@ export class VouchersService {
     const titular = pasajeros.find((p) => p.es_titular) ?? pasajeros[0];
     const verifToken = reserva.verif_token ?? '';
 
+    // Punto de salida elegido en el formulario (catálogo global).
+    const globales = (reserva.respuestas_globales ?? {}) as Record<string, unknown>;
+    const clavePunto = typeof globales['punto_abordaje'] === 'string' ? String(globales['punto_abordaje']) : '';
+    let puntoAbordaje = 'Por definir';
+    if (clavePunto) {
+      const punto = await this.puntos.findOne({ where: { clave: clavePunto } });
+      puntoAbordaje = punto
+        ? `${punto.nombre} (${horaLegible(punto.hora)})`
+        : clavePunto.replace(/_/g, ' ');
+    }
+
     const [firmaEmpresaDataUrl, firmaCliente] = await Promise.all([
       this.dataUrlFirmaEmpresa(),
       firmaVigente
@@ -161,14 +174,22 @@ export class VouchersService {
       tourNombre: tour.nombre,
       fechaSalida: fecha.fecha_salida,
       horaSalida: fecha.hora_salida,
-      puntoAbordaje: 'Por definir', // TODO: obtener del formulario de la reserva
-      pasajeros: pasajeros.map((p) => ({
-        nombre: p.nombre,
-        categoria: p.categoria ?? 'Pasajero',
-        documento: p.documento_ultimos4 ? `***${p.documento_ultimos4}` : 'Sin documento',
-        selecciones: [], // TODO: obtener del formulario
-        alergias: undefined, // TODO: obtener del formulario
-      })),
+      puntoAbordaje,
+      pasajeros: pasajeros.map((p) => {
+        const respuestas = (p.respuestas ?? {}) as Record<string, unknown>;
+        const detalle =
+          typeof respuestas['detalle_alergias'] === 'string'
+            ? String(respuestas['detalle_alergias']).trim()
+            : '';
+        return {
+          nombre: p.nombre,
+          categoria: p.categoria ?? 'Pasajero',
+          documento: p.documento_ultimos4 ? `***${p.documento_ultimos4}` : 'Sin documento',
+          selecciones: [], // TODO: obtener del formulario
+          // Condición médica declarada por pasajero (campo `detalle_alergias`).
+          alergias: detalle ? detalle : undefined,
+        };
+      }),
       totalUsd: reserva.total_usd ?? '0.00',
       pagos: pagos.map((p) => ({
         metodo: p.metodo_id,

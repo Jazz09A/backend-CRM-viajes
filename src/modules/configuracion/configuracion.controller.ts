@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
-import { ConfiguracionService } from './configuracion.service';
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { ConfiguracionService, PuntoSalidaDto } from './configuracion.service';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, UsuarioActual } from '../../common/decorators/current-user.decorator';
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 class TasaDto {
   @IsNumber()
@@ -11,6 +11,32 @@ class TasaDto {
   @IsOptional()
   @IsString()
   nota?: string;
+}
+
+class PuntoSalidaBodyDto implements PuntoSalidaDto {
+  @IsOptional()
+  @IsString()
+  clave?: string;
+
+  @IsOptional()
+  @IsString()
+  nombre?: string;
+
+  @IsOptional()
+  @IsString()
+  hora?: string;
+
+  @IsOptional()
+  @IsString()
+  referencia?: string;
+
+  @IsOptional()
+  @IsNumber()
+  orden?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  activo?: boolean;
 }
 
 @Controller()
@@ -78,5 +104,31 @@ export class ConfiguracionController {
   @Roles('superadmin')
   promos() {
     return this.service.listarPromos();
+  }
+
+  // ── puntos de salida (catálogo global) ────────────────────────────────
+
+  @Get('puntos-salida')
+  @Roles('superadmin', 'operador', 'validador')
+  puntos() {
+    return this.service.listarPuntos(true);
+  }
+
+  @Post('puntos-salida')
+  @Roles('superadmin')
+  crearPunto(@Body() dto: PuntoSalidaBodyDto) {
+    return this.service.crearPunto(dto);
+  }
+
+  @Put('puntos-salida/:id')
+  @Roles('superadmin')
+  actualizarPunto(@Param('id') id: string, @Body() dto: PuntoSalidaBodyDto) {
+    return this.service.actualizarPunto(id, dto);
+  }
+
+  @Delete('puntos-salida/:id')
+  @Roles('superadmin')
+  eliminarPunto(@Param('id') id: string) {
+    return this.service.eliminarPunto(id);
   }
 }

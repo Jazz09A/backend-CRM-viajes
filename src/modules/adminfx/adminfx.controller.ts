@@ -131,6 +131,16 @@ export class AdminFxController {
     return this.service.reactivar(id, user.id);
   }
 
+  /**
+   * Confirma la reserva a mano (el titular no reporta el pago): asigna el
+   * código y encola la generación del voucher.
+   */
+  @Post('reservas/:id/confirmar')
+  @Roles('superadmin', 'operador', 'validador')
+  confirmarReserva(@Param('id') id: string, @Body() body: { motivo?: string }, @CurrentUser() user: UsuarioActual) {
+    return this.service.confirmarReserva(id, body, user.id);
+  }
+
   // ── pagos ─────────────────────────────────────────────────────────────
 
   @Get('pagos')
@@ -153,6 +163,20 @@ export class AdminFxController {
   @Roles('superadmin', 'operador')
   pagoEfectivo(@Param('id') id: string, @Body() body: { monto: string; referencia?: string; nota?: string }, @CurrentUser() user: UsuarioActual) {
     return this.service.registrarPagoEfectivo(id, body, user.id);
+  }
+
+  /**
+   * Anota datos de pago desde la reserva (el cliente no reporta nada):
+   * entra a la cola «Pagos por validar».
+   */
+  @Post('reservas/:id/pagos')
+  @Roles('superadmin', 'operador')
+  registrarPagoReserva(
+    @Param('id') id: string,
+    @Body() body: { metodo_clave: string; monto: string; moneda?: string; fecha_pago?: string; referencia?: string; nota?: string },
+    @CurrentUser() user: UsuarioActual,
+  ) {
+    return this.service.registrarPagoReserva(id, body, user.id);
   }
 
   @Post('pagos/:id/reembolso')

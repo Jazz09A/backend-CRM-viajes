@@ -32,6 +32,45 @@ export interface CampoDef {
   max?: number;
   step?: number;
   valor_defecto?: unknown;
+  /** Marca de origen para opciones dinámicas: `puntos_salida` usa el catálogo global. */
+  fuente?: string;
+  /** Agrupación funcional; `comida` se oculta con el flag global de comidas. */
+  grupo?: string;
+}
+
+/**
+ * ¿El campo es una selección de comida (almuerzo, menú infantil…)?
+ * Con el flag global `comidas_deshabilitadas` estos campos se ocultan del
+ * formulario público sin borrarlos de la definición.
+ *
+ * Además reconoce los ids de los formularios anteriores a la marca `grupo`
+ * (`almuerzo`, `menu_infantil`), para no depender de republicar formularios
+ * ya publicados.
+ */
+const CAMPOS_COMIDA_LEGADO: ReadonlySet<string> = new Set(['almuerzo', 'menu_infantil']);
+
+export function esCampoComida(campo: CampoDef): boolean {
+  return campo.grupo === 'comida' || CAMPOS_COMIDA_LEGADO.has(campo.id);
+}
+
+/**
+ * ¿El campo sus opciones vienen del catálogo global de puntos de salida?
+ * Se reconoce por la marca explícita o por la convención de id establecida
+ * desde la primera versión de los formularios.
+ */
+export function esCampoPuntoSalida(campo: CampoDef): boolean {
+  return campo.fuente === 'puntos_salida' || campo.id === 'punto_abordaje';
+}
+
+/** "06:30" → "6:30 a. m." para las etiquetas visibles al cliente. */
+export function horaLegible(hora: string): string {
+  const m = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(String(hora ?? '').trim());
+  if (!m) return hora;
+  const h = Number(m[1]);
+  const minutos = m[2];
+  const sufijo = h < 12 ? 'a. m.' : 'p. m.';
+  const doce = h % 12 === 0 ? 12 : h % 12;
+  return `${doce}:${minutos} ${sufijo}`;
 }
 
 export interface ContextoFormulario {

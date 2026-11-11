@@ -72,6 +72,22 @@ aplican fuera de producción (para pruebas automatizadas).
 | `adminfx` | BFF/fachada para el panel admin; delega mutaciones a servicios de dominio |
 | `configuracion`, `catalogo`, `cupos`, `fechas`, `tours`, `clientes`, `auditoria` | Dominios de soporte |
 
+### Confirmación manual de la reserva
+
+Cuando el titular **no reporta el pago** (la agencia lo cobra por adelantado,
+por transferencia o en el punto de encuentro) la reserva se queda en
+`pendiente_pago` y nadie la avanza: el cliente no tiene el paso de reporte y
+la cola de pagos no ve nada que validar.
+
+`POST /adminfx/reservas/:id/confirmar` (SA/OP/VAL) la confirma: asigna el
+código `VJ-AAAA-NNNNN`, convierte el hold en venta y encola la generación del
+voucher. No exige saldo cero — la agencia puede confirmar con un abono y
+cobrar el resto al abordar — pero sí que no queden pagos por validar y que la
+firma de términos esté vigente.
+
+Además, `POST /adminfx/pagos/:reserva_id/efectivo` confirma sola la reserva
+cuando el pago en efectivo cubre el saldo.
+
 ## Regla de oro
 
 Ningún controlador cambia `reserva.estado` directamente: toda transición pasa

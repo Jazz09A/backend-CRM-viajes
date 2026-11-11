@@ -60,6 +60,31 @@ export class TourPuntoAbordaje extends ConTimestamps {
   @Column({ type: 'boolean', default: true }) activo!: boolean;
 }
 
+/**
+ * Puntos de salida (abordaje) compartidos por todos los tours.
+ *
+ * Catálogo global administrable desde el panel: Guatire, Guarenas y Caracas
+ * son los iniciales; se pueden crear, editar y eliminar. Los formularios
+ * públicos toman sus opciones de aquí (no de definiciones por tour).
+ */
+@Entity('punto_salida')
+export class PuntoSalida extends ConTimestamps {
+  /** Identificador estable usado como `valor` en las respuestas (slug). */
+  @Index({ unique: true })
+  @Column('varchar', { length: 40 }) clave!: string;
+
+  @Column('varchar', { length: 160 }) nombre!: string;
+
+  /** Hora estimada de recogida (HH:MM, hora local de la agencia). */
+  @Column('varchar', { length: 5 }) hora!: string;
+
+  @Column({ type: 'varchar', nullable: true }) referencia?: string | null;
+
+  @Column({ type: 'int', default: 0 }) orden!: number;
+
+  @Column({ type: 'boolean', default: true }) activo!: boolean;
+}
+
 @Entity('campo_biblioteca')
 export class CampoBiblioteca extends ConTimestamps {
   @Index({ unique: true })

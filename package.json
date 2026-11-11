@@ -10,7 +10,8 @@
     "start:prod": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "seed": "ts-node --transpile-only src/database/seed.ts"
+    "seed": "ts-node --transpile-only src/database/seed.ts",
+    "importar:escapate": "ts-node --transpile-only src/database/importar-escapate.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1164.0",

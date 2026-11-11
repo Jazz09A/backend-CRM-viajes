@@ -97,6 +97,7 @@ function definicionFormulario(tourClave: string) {
       tipo: 'select',
       alcance: 'por_pasajero',
       obligatorio: true,
+      grupo: 'comida',
       aplica_a: ['Adulto', 'Tercera Edad', 'Niño'],
       opciones: [
         { valor: 'pescado', label: 'Pescado frito', cupo: 20 },
@@ -129,6 +130,7 @@ function definicionFormulario(tourClave: string) {
       alcance: 'por_reserva',
       obligatorio: true,
       permite_por_pasajero: true,
+      fuente: 'puntos_salida',
       opciones: puntos,
     },
     {
@@ -160,6 +162,7 @@ function definicionFormulario(tourClave: string) {
       tipo: 'select',
       alcance: 'por_pasajero',
       obligatorio: true,
+      grupo: 'comida',
       aplica_a: ['Niño'],
       opciones: [
         { valor: 'jugo_emparedado', label: 'Jugo y emparedado' },

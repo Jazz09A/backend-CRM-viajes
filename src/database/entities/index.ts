@@ -1,7 +1,7 @@
 import { AuditLog, EmailLog, Idempotencia, NotificacionPanel, OutboxEvento, ReservaEstadoHistorial } from './soporte.entities';
 import { Archivo, Exportacion, Factura, Firma, Pago, Reembolso, Voucher } from './operacion.entities';
 import { Cliente, ContadorCodigo, CupoMovimiento, EnlaceReserva, Pasajero, Reserva, ReservaAjuste, ReservaLinea } from './reserva.entities';
-import { CampoBiblioteca, CupoOpcion, FechaSobrecupo, FechaTour, Tarifa, Tour, TourFormVersion, TourPuntoAbordaje } from './catalogo.entities';
+import { CampoBiblioteca, CupoOpcion, FechaSobrecupo, FechaTour, PuntoSalida, Tarifa, Tour, TourFormVersion, TourPuntoAbordaje } from './catalogo.entities';
 import { CodigoPromocional, Configuracion, MetodoPago, PlantillaMensaje, PlantillaTerminos, PlantillaTerminosVersion, PoliticaCancelacion, TasaCambio } from './config.entities';
 import { Sesion, Usuario, UsuarioRecoveryCode } from './auth.entities';
 import type { ActorTipo } from './soporte.entities';
@@ -24,6 +24,7 @@ export {
   Pasajero, Pago, PlantillaMensaje, PlantillaTerminos, PlantillaTerminosVersion,
   PoliticaCancelacion, Reembolso, Reserva, ReservaAjuste, ReservaEstadoHistorial,
   ReservaLinea, Sesion, TasaCambio, Tarifa, Tour, TourFormVersion, TourPuntoAbordaje,
+  PuntoSalida,
   Usuario, UsuarioRecoveryCode, Voucher, Idempotencia,
 };
 
@@ -31,7 +32,7 @@ export const TODAS_ENTIDADES = [
   Usuario, UsuarioRecoveryCode, Sesion,
   Configuracion, TasaCambio, MetodoPago, PlantillaTerminos, PlantillaTerminosVersion,
   PlantillaMensaje, PoliticaCancelacion, CodigoPromocional,
-  Tour, TourPuntoAbordaje, CampoBiblioteca, TourFormVersion,
+  Tour, TourPuntoAbordaje, PuntoSalida, CampoBiblioteca, TourFormVersion,
   FechaTour, FechaSobrecupo, Tarifa, CupoOpcion,
   Cliente, Reserva, EnlaceReserva, Pasajero, ReservaLinea, ReservaAjuste,
   CupoMovimiento, ContadorCodigo,

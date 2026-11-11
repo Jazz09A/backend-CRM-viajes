@@ -6,7 +6,8 @@
 # PDF en el worker).
 #
 # Arranque: migraciones → seed idempotente (solo admin/config en
-# NODE_ENV=production) → API. Los workers (JobsService, outbox, tick 60 s)
+# NODE_ENV=production) → catálogo Escapate (idempotente; archiva los tours
+# de la semilla demo) → API. Los workers (JobsService, outbox, tick 60 s)
 # corren dentro del proceso del API.
 # ──────────────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,8 @@ RUN npm ci
 
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
+# Catálogo de Escapate Tours (fuente de verdad del importador).
+COPY catalogo-escapate.json ./
 RUN npm run build && npm prune --omit=dev
 
 # ── Etapa 2: runtime ──────────────────────────────────────────────────────
@@ -53,4 +56,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8000)+'/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-CMD ["sh", "-c", "node dist/database/migrate.js && node dist/database/seed.js && node dist/main.js"]
+CMD ["sh", "-c", "node dist/database/migrate.js && node dist/database/seed.js && node dist/database/importar-escapate.js --archivar-demo && node dist/main.js"]

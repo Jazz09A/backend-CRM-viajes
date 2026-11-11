@@ -13,7 +13,7 @@ if (existsSync('.env')) {
   }
 }
 import { crearDataSource } from './data-source';
-import { TODAS_ENTIDADES } from './entities';
+import { TODAS_ENTIDADES, PuntoSalida } from './entities';
 import { Usuario } from './entities/auth.entities';
 import { Configuracion } from './entities/config.entities';
 import { hashPassword, sha256Hex } from '../common/crypto.util';
@@ -45,16 +45,44 @@ export const CONFIG_POR_DEFECTO: Record<string, unknown> = {
   firma_empresa_archivo_id: null,
   aviso_privacidad: { texto: '', version: '1.0' },
   captcha_activo: true,
+  /**
+   * Selección de comida en los formularios. `true` la oculta en el formulario
+   * público (sin borrar los campos); se reactiva con un cambio de este flag.
+   */
+  comidas_deshabilitadas: true,
+  /**
+   * Reporte de pago desde el formulario del cliente. `false` oculta el paso
+   * de pago del cliente: la agencia anota los datos del pago desde la reserva.
+   * No se borra el flujo: basta volver a `true` para reactivarlo.
+   */
+  reporte_pago_cliente: false,
 };
+
+/** Puntos de salida globales con los que arranca toda instalación. */
+export const PUNTOS_SALIDA_INICIALES = [
+  { clave: 'guatire', nombre: 'Guatire', hora: '06:00', referencia: 'Punto de encuentro en el centro de Guatire.', orden: 0 },
+  { clave: 'guarenas', nombre: 'Guarenas', hora: '06:30', referencia: 'Punto de encuentro en el centro de Guarenas.', orden: 1 },
+  { clave: 'caracas', nombre: 'Caracas', hora: '07:00', referencia: 'Punto de encuentro en Caracas.', orden: 2 },
+];
 
 export async function ejecutarSeed(ds: DataSource): Promise<void> {
   const repoConfig = ds.getRepository(Configuracion);
   const repoUsuario = ds.getRepository(Usuario);
+  const repoPuntos = ds.getRepository(PuntoSalida);
 
   for (const [clave, valor] of Object.entries(CONFIG_POR_DEFECTO)) {
     const existe = await repoConfig.findOne({ where: { clave } });
     if (!existe) {
       await repoConfig.save(repoConfig.create({ clave, valor, actualizado_en: new Date() }));
+    }
+  }
+
+  // Puntos de salida globales: se crean si no existen; nunca se pisan los
+  // que la agencia ya creó o editó desde el panel.
+  for (const punto of PUNTOS_SALIDA_INICIALES) {
+    const existe = await repoPuntos.findOne({ where: { clave: punto.clave } });
+    if (!existe) {
+      await repoPuntos.save(repoPuntos.create({ ...punto, activo: true }));
     }
   }
 

@@ -23,7 +23,7 @@ import {
   TasaCambio,
   Tour,
   TourFormVersion,
-  TourPuntoAbordaje,
+  PuntoSalida,
   Voucher,
 } from '../../database/entities';
 import { ApiError } from '../../common/errors';
@@ -41,6 +41,9 @@ import {
   detectarOpcionesAgotadas,
   edadEn,
   errorValidacion,
+  esCampoComida,
+  esCampoPuntoSalida,
+  horaLegible,
   validarCorreo,
   validarDocumento,
   validarDocumentosUnicos,
@@ -82,7 +85,7 @@ interface Contexto {
   formVersion: TourFormVersion | null;
   tarifas: Tarifa[];
   cupos: CupoOpcion[];
-  puntos: TourPuntoAbordaje[];
+  puntos: PuntoSalida[];
   firma: Firma | null;
   voucher: Voucher | null;
   pagos: Pago[];
@@ -107,7 +110,7 @@ export class PublicoService {
     @InjectRepository(Tarifa) private readonly tarifas: Repository<Tarifa>,
     @InjectRepository(Tour) private readonly tours: Repository<Tour>,
     @InjectRepository(TourFormVersion) private readonly formVersions: Repository<TourFormVersion>,
-    @InjectRepository(TourPuntoAbordaje) private readonly puntos: Repository<TourPuntoAbordaje>,
+    @InjectRepository(PuntoSalida) private readonly puntos: Repository<PuntoSalida>,
     @InjectRepository(CupoOpcion) private readonly cuposOpcion: Repository<CupoOpcion>,
     @InjectRepository(Firma) private readonly firmas: Repository<Firma>,
     @InjectRepository(Idempotencia) private readonly idempotencias: Repository<Idempotencia>,
@@ -180,7 +183,8 @@ export class PublicoService {
     const [tarifas, cupos, puntos] = await Promise.all([
       this.tarifas.find({ where: { fecha_tour_id: fecha.id } }),
       this.cuposOpcion.find({ where: { fecha_tour_id: fecha.id } }),
-      this.puntos.find({ where: { tour_id: tour.id } }),
+      // Catálogo global de puntos de salida (compartido por todos los tours).
+      this.puntos.find({ where: { activo: true }, order: { orden: 'ASC' } }),
     ]);
     const formVersion = reserva.form_version_id
       ? await this.formVersions.findOne({ where: { id: reserva.form_version_id } })
@@ -278,7 +282,34 @@ export class PublicoService {
     const def = (ctx.formVersion?.definicion ?? {}) as Record<string, unknown>;
     // Los campos `extra` (toldos y demás cargos) ya no se piden al cliente:
     // los gestiona la agencia en el precio administrado.
-    return (((def.campos as CampoDef[]) ?? []) as CampoDef[]).filter((c) => c.tipo !== 'extra');
+    let campos = (((def.campos as CampoDef[]) ?? []) as CampoDef[]).filter((c) => c.tipo !== 'extra');
+    // Selección de comida: deshabilitada por bandera global (sin borrarla).
+    if (ctx.config.get('comidas_deshabilitadas') !== false) {
+      campos = campos.filter((c) => !esCampoComida(c));
+    }
+    // Punto de salida: las opciones vienen del catálogo global en cada render.
+    return campos.map((c) => (esCampoPuntoSalida(c) ? { ...c, opciones: this.opcionesPuntos(ctx) } : c));
+  }
+
+  private opcionesPuntos(ctx: Contexto): CampoDef['opciones'] {
+    return ctx.puntos
+      .filter((p) => p.activo)
+      .map((p) => ({ valor: p.clave, label: `${p.nombre}, ${horaLegible(p.hora)}` }));
+  }
+
+  /** Reporte de pago desde el cliente: desactivable (flag `reporte_pago_cliente`). */
+  private reportePagoClienteActivo(ctx: Contexto): boolean {
+    return ctx.config.get('reporte_pago_cliente') === true;
+  }
+
+  private validarReportePagoCliente(ctx: Contexto) {
+    if (!this.reportePagoClienteActivo(ctx)) {
+      throw new ApiError(
+        403,
+        'PAGO_CLIENTE_DESACTIVADO',
+        'El reporte de pago por el formulario está desactivado. La agencia se pondrá en contacto contigo para coordinar el pago.',
+      );
+    }
   }
 
   private respuestasPorPasajero(ctx: Contexto): Record<string, Record<string, Respuesta>> {
@@ -340,22 +371,21 @@ export class PublicoService {
     };
   }
 
-  /** Formulario público: sin campos `extra` (toldos) ni precios en opciones. */
-  private formularioSinExtras(v: TourFormVersion) {
+  /** Formulario público: sin campos `extra` (toldos), sin comida deshabilitada, con puntos del catálogo y sin precios en opciones. */
+  private formularioSinExtras(ctx: Contexto) {
+    const v = ctx.formVersion;
+    if (!v) return null;
     const pub = formularioPublico(v);
-    const definicion = pub.definicion as { campos?: Record<string, unknown>[] };
-    const campos = (definicion.campos ?? [])
-      .filter((c) => c.tipo !== 'extra')
-      .map((c) => {
-        const { precio_usd: _precio, ...resto } = c;
-        if (Array.isArray(resto.opciones)) {
-          resto.opciones = resto.opciones.map((o) => {
-            const { precio_usd: _po, extra_usd: _eo, ...opcion } = o as Record<string, unknown>;
-            return opcion;
-          });
-        }
-        return resto;
-      });
+    const campos: Record<string, unknown>[] = this.camposFormulario(ctx).map((c) => {
+      const { precio_usd: _precio, ...resto } = c as unknown as Record<string, unknown>;
+      if (Array.isArray(resto.opciones)) {
+        resto.opciones = (resto.opciones as Record<string, unknown>[]).map((o) => {
+          const { precio_usd: _po, extra_usd: _eo, ...opcion } = o;
+          return opcion;
+        });
+      }
+      return resto;
+    });
     return { ...pub, definicion: { campos } };
   }
 
@@ -376,7 +406,14 @@ export class PublicoService {
     base.tour_id = ctx.tour.id;
     base.fecha_tour_id = ctx.fecha.id;
     base.formulario_id = ctx.formVersion?.id ?? '';
-    const progreso = progresoPublico(ctx.reserva, ctx.pasajeros, Boolean(ctx.firma), ctx.reserva.estado_pago);
+    const progreso = progresoPublico(
+      ctx.reserva,
+      ctx.pasajeros,
+      Boolean(ctx.firma),
+      ctx.reserva.estado_pago,
+      this.reportePagoClienteActivo(ctx),
+    );
+    const formulario = this.formularioSinExtras(ctx);
     return {
       reserva: base,
       progreso,
@@ -385,7 +422,7 @@ export class PublicoService {
       tarifas: ctx.tarifas.map((t) => this.tarifaSinPrecio(t)),
       ...(ctx.politica ? { politica_cancelacion: politicaPublica(ctx.politica) } : {}),
       config: configPublica(ctx.config),
-      ...(ctx.formVersion ? { formulario: this.formularioSinExtras(ctx.formVersion) } : {}),
+      ...(formulario ? { formulario } : {}),
       opciones_agotadas: detectarOpcionesAgotadas(
         ctx.cupos.map((c) => ({ campo_id: c.campo_id, opcion: c.valor, cupo: c.cupo, agotados: c.vendidos + c.retenidos })),
         { ...this.globalesDe(ctx), ...Object.values(this.respuestasPorPasajero(ctx)).reduce((acc, r) => ({ ...acc, ...r }), {}) },
@@ -840,7 +877,13 @@ export class PublicoService {
     return {
       version: actualizada.version,
       paso_actual: pasoActualDe(actualizada),
-      progreso: progresoPublico(actualizada, ctx2.pasajeros, Boolean(ctx2.firma), actualizada.estado_pago),
+      progreso: progresoPublico(
+        actualizada,
+        ctx2.pasajeros,
+        Boolean(ctx2.firma),
+        actualizada.estado_pago,
+        this.reportePagoClienteActivo(ctx2),
+      ),
     };
   }
 
@@ -1202,6 +1245,7 @@ export class PublicoService {
     const { reserva } = await this.stateMachine.resolverPorToken(token);
     const ctx = await this.cargarContexto(reserva.id);
     this.validarAbierta(ctx);
+    this.validarReportePagoCliente(ctx);
 
     const metodoClave = String(body.metodo_clave ?? body.metodo ?? '');
     const metodo = await this.metodos.findOne({ where: { clave: metodoClave, activo: true } });
@@ -1287,6 +1331,8 @@ export class PublicoService {
 
   async solicitarCorreccionPublica(token: string, pagoId: string, body: { referencia?: string; monto?: string; comprobante?: Record<string, unknown> }) {
     const { reserva } = await this.stateMachine.resolverPorToken(token);
+    const ctx = await this.cargarContexto(reserva.id);
+    this.validarReportePagoCliente(ctx);
     const pago = await this.pagos.findOne({ where: { id: pagoId, reserva_id: reserva.id } });
     if (!pago) throw ApiError.noEncontrado('No encontramos ese pago.');
     if (body.referencia) pago.referencia = String(body.referencia);

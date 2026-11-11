@@ -15,7 +15,7 @@ import {
   TasaCambio,
   Tour,
   TourFormVersion,
-  TourPuntoAbordaje,
+  PuntoSalida,
   Voucher,
 } from '../../database/entities';
 import { descifrarONull } from '../../common/datos-sensibles';
@@ -121,6 +121,7 @@ export function progresoPublico(
   pasajeros: Pasajero[],
   tieneFirma: boolean,
   estadoPago: string,
+  reportePagoActivo = true,
 ): Record<string, unknown> {
   const ORDEN = ['titular', 'acompanantes', 'preguntas', 'resumen', 'firma', 'pago'];
   const LABEL: Record<string, string> = {
@@ -129,7 +130,9 @@ export function progresoPublico(
     preguntas: 'Preguntas',
     resumen: 'Confirmación',
     firma: 'Firma',
-    pago: 'Pago',
+    // Con el reporte del cliente desactivado, la agencia es quien anota el
+    // pago: el paso pasa a leerse como coordinación, no como acción del cliente.
+    pago: reportePagoActivo ? 'Pago' : 'Coordinación de pago',
   };
   const pasoActual = pasoActualDe(r);
   const indiceActual = ORDEN.indexOf(pasoActual);
@@ -157,7 +160,8 @@ export function progresoPublico(
   if (!titular?.correo) camposFaltantes.push('titular.correo');
   if (pasajeros.length < 1) camposFaltantes.push('pasajeros');
   if (!tieneFirma) camposFaltantes.push('firma');
-  if (estadoPago !== 'pagado') camposFaltantes.push('pago');
+  // El pago sólo falta como acción del cliente si él mismo debe reportarlo.
+  if (reportePagoActivo && estadoPago !== 'pagado') camposFaltantes.push('pago');
 
   let mensajeReanudacion: string | undefined;
   if (r.estado === 'en_registro' && indiceActual > 0) {
@@ -283,7 +287,7 @@ export function voucherPublico(v: Voucher, baseUrl = '', verifToken = ''): Recor
 // Catálogo
 // ---------------------------------------------------------------------------
 
-export function tourPublico(tour: Tour, puntos: TourPuntoAbordaje[], formVersionId: string | null, terminosVersionId: string | null): Record<string, unknown> {
+export function tourPublico(tour: Tour, puntos: PuntoSalida[], formVersionId: string | null, terminosVersionId: string | null): Record<string, unknown> {
   return {
     id: tour.id,
     nombre: tour.nombre,
@@ -408,6 +412,15 @@ export function configPublica(mapa: Map<string, unknown>): Record<string, unknow
     ...(mapa.has('firma_empresa_fecha') ? { firma_empresa_fecha: mapa.get('firma_empresa_fecha') } : {}),
     ...(mapa.has('firma_empresa_archivo_id') ? { firma_empresa_archivo_id: mapa.get('firma_empresa_archivo_id') } : {}),
     tour_activo_default: get('tour_activo_default', ''),
+    /**
+     * Banderas globales del formulario (spec: se reactivan desde el panel sin
+     * desplegar código):
+     * - `comidas_deshabilitadas`: oculta la selección de comida al cliente.
+     * - `reporte_pago_cliente`: oculta el paso de pago del cliente; la agencia
+     *   anota los datos del pago desde la reserva.
+     */
+    comidas_deshabilitadas: get<boolean>('comidas_deshabilitadas', true) !== false,
+    reporte_pago_cliente: get<boolean>('reporte_pago_cliente', false) === true,
   };
 }
 

@@ -26,7 +26,7 @@ import {
   Tarifa,
   Tour,
   TourFormVersion,
-  TourPuntoAbordaje,
+  PuntoSalida,
   Usuario,
   Voucher,
 } from '../../database/entities';
@@ -35,6 +35,7 @@ import { hashPassword, sha256Hex } from '../../common/crypto.util';
 import { descifrarONull } from '../../common/datos-sensibles';
 import { ArchivosService } from '../archivos/archivos.service';
 import { ReservasService } from '../reservas/reservas.service';
+import { ReservaStateMachine } from '../reservas/reserva-state-machine';
 import { PagosService } from '../pagos/pagos.service';
 import { ConfiguracionService } from '../configuracion/configuracion.service';
 import { CuposService } from '../cupos/cupos.service';
@@ -86,7 +87,7 @@ export class AdminFxService {
     @InjectRepository(Tarifa) private readonly tarifas: Repository<Tarifa>,
     @InjectRepository(CupoOpcion) private readonly cuposOpcion: Repository<CupoOpcion>,
     @InjectRepository(Tour) private readonly tourRepo: Repository<Tour>,
-    @InjectRepository(TourPuntoAbordaje) private readonly puntos: Repository<TourPuntoAbordaje>,
+    @InjectRepository(PuntoSalida) private readonly puntos: Repository<PuntoSalida>,
     @InjectRepository(TourFormVersion) private readonly formVersions: Repository<TourFormVersion>,
     @InjectRepository(MetodoPago) private readonly metodos: Repository<MetodoPago>,
     @InjectRepository(Pago) private readonly pagoRepo: Repository<Pago>,
@@ -106,6 +107,7 @@ export class AdminFxService {
     @InjectRepository(NotificacionPanel) private readonly notificacionRepo: Repository<NotificacionPanel>,
     private readonly reservasService: ReservasService,
     private readonly pagosService: PagosService,
+    private readonly stateMachine: ReservaStateMachine,
     private readonly configService: ConfiguracionService,
     private readonly cupos: CuposService,
     private readonly fechasService: FechasService,
@@ -305,7 +307,9 @@ export class AdminFxService {
   }
 
   private async tourFe(t: Tour): Promise<Record<string, unknown>> {
-    const puntos = await this.puntos.find({ where: { tour_id: t.id } });
+    // Los puntos de salida son un catálogo global (Guatire, Guarenas,
+    // Caracas…): el tour los muestra, no los administra.
+    const puntos = await this.puntos.find({ where: { activo: true }, order: { orden: 'ASC' } });
     const fv = await this.ultimasVersionesForm();
     const version = fv.get(t.id);
     const termVersion = t.plantilla_terminos_id
@@ -428,7 +432,7 @@ export class AdminFxService {
         id: r.id,
         tipo: 'pago',
         titulo: `Pago por verificar — ${r.ref_corta}`,
-        detalle: 'La reserva espera validación del pago reportado.',
+        detalle: 'La reserva espera validación del pago registrado.',
         entidad_id: r.id,
         severidad: 'alta',
       });
@@ -511,12 +515,44 @@ export class AdminFxService {
     };
   }
 
-  async crearReserva(body: { fecha_tour_id: string; referencia_interna?: string; estimated_pasajeros?: number }, usuarioId: string) {
+  async crearReserva(
+    body: {
+      fecha_tour_id: string;
+      referencia_interna?: string;
+      estimated_pasajeros?: number;
+      /** Cargos extra iniciales (toldos, servicios…). Se persisten como `reserva_linea`. */
+      lineas?: { id?: string; concepto: string; cantidad: number; precio_unit_usd: string }[];
+      /** Descuentos/recargos iniciales con motivo. Se persisten como `reserva_ajuste`. */
+      ajustes?: { id?: string; tipo: 'descuento' | 'recargo'; monto_usd: string; motivo: string }[];
+    },
+    usuarioId: string,
+  ) {
+    const lineas = Array.isArray(body.lineas) ? body.lineas : [];
+    const ajustes = Array.isArray(body.ajustes) ? body.ajustes : [];
+    const motivoAlta = 'Alta de reserva con cargos iniciales';
+    // Se valida ANTES de crear: si algo está mal no queda una reserva a medias.
+    if (lineas.length || ajustes.length) this.validarPrecio({ lineas, ajustes }, motivoAlta);
+
     const resp = await this.reservasService.crear(
       { fecha_tour_id: body.fecha_tour_id, referencia_interna: body.referencia_interna },
       usuarioId,
     );
-    const reserva = await this.reservaFe(resp.reserva as unknown as Reserva);
+    const creada = resp.reserva as unknown as Reserva;
+
+    // Precio administrado en el alta: se reutiliza `guardarPrecio` (misma
+    // validación, upsert, recálculo y auditoría que en el detalle).
+    let precio: Record<string, unknown> | null = null;
+    if (lineas.length || ajustes.length) {
+      precio = (await this.guardarPrecio(
+        creada.id,
+        { motivo: motivoAlta, lineas, ajustes },
+        usuarioId,
+      )) as Record<string, unknown>;
+    }
+
+    // `guardarPrecio` incrementa `version` y recalcula totales; se releen.
+    const actualizada = (await this.reservaRepo.findOne({ where: { id: creada.id } })) ?? creada;
+    const reserva = await this.reservaFe(actualizada);
     const enlaceObj =
       typeof resp.enlace === 'object' && resp.enlace !== null
         ? (resp.enlace as { url?: string; token?: string; expira_en?: string })
@@ -528,6 +564,7 @@ export class AdminFxService {
       expira_en: enlaceObj?.expira_en ?? null,
       whatsapp_url: typeof resp.whatsapp_url === 'string' ? resp.whatsapp_url : undefined,
       advertencias: ((resp.advertencias ?? []) as string[]).map((m) => ({ codigo: 'ADVERTENCIA', mensaje: m })),
+      ...(precio ? { precio } : {}),
     };
   }
 
@@ -581,30 +618,24 @@ export class AdminFxService {
    * Reemplaza las líneas extra (toldos y cargos) y los ajustes manuales de la
    * reserva, recalcula los totales con las tarifas reales y audita el cambio.
    */
-  async guardarPrecio(
-    id: string,
+  /**
+   * Valida líneas extra y ajustes antes de persistirlos (compartido por el
+   * alta de reserva y por la edición de precio).
+   */
+  private validarPrecio(
     body: {
-      motivo: string;
-      lineas?: { id?: string; concepto: string; cantidad: number; precio_unit_usd: string }[];
-      ajustes?: { id?: string; tipo: 'descuento' | 'recargo'; monto_usd: string; motivo: string }[];
+      motivo?: string;
+      lineas?: { concepto: string; cantidad: number; precio_unit_usd: string }[];
+      ajustes?: { tipo: string; monto_usd: string; motivo: string }[];
     },
-    usuarioId: string,
+    motivo: string,
   ) {
-    const r = await this.reservaRepo.findOne({ where: { id } });
-    if (!r) throw ApiError.noEncontrado('Reserva');
-    if (['cancelada', 'expirada', 'completada'].includes(r.estado)) {
-      throw ApiError.transicionInvalida('No se puede editar el precio de una reserva cerrada');
-    }
-    const motivo = String(body.motivo ?? '').trim();
     if (!motivo) {
       throw ApiError.validacion('El motivo del cambio de precio es obligatorio', [
         { campo: 'motivo', codigo: 'VALIDACION', mensaje: 'Escribe el motivo del ajuste.' },
       ]);
     }
-
-    const lineasIn = Array.isArray(body.lineas) ? body.lineas : [];
-    const ajustesIn = Array.isArray(body.ajustes) ? body.ajustes : [];
-    for (const [i, l] of lineasIn.entries()) {
+    for (const [i, l] of (body.lineas ?? []).entries()) {
       if (!String(l.concepto ?? '').trim()) {
         throw ApiError.validacion(`La línea ${i + 1} necesita un concepto`, [
           { campo: `lineas.${i}.concepto`, codigo: 'VALIDACION', mensaje: 'Escribe el concepto.' },
@@ -621,7 +652,7 @@ export class AdminFxService {
         ]);
       }
     }
-    for (const [i, a] of ajustesIn.entries()) {
+    for (const [i, a] of (body.ajustes ?? []).entries()) {
       if (a.tipo !== 'descuento' && a.tipo !== 'recargo') {
         throw ApiError.validacion(`El ajuste ${i + 1} tiene un tipo inválido`, [
           { campo: `ajustes.${i}.tipo`, codigo: 'VALIDACION', mensaje: 'Tipo inválido.' },
@@ -636,6 +667,79 @@ export class AdminFxService {
         throw ApiError.validacion(`El ajuste ${i + 1} necesita un motivo`, [
           { campo: `ajustes.${i}.motivo`, codigo: 'VALIDACION', mensaje: 'Escribe el motivo.' },
         ]);
+      }
+    }
+  }
+
+  async guardarPrecio(
+    id: string,
+    body: {
+      motivo: string;
+      /** Obligatoria (mín. 10 caracteres) si hay pagos registrados y cambia el total. */
+      justificacion?: string;
+      lineas?: { id?: string; concepto: string; cantidad: number; precio_unit_usd: string }[];
+      ajustes?: { id?: string; tipo: 'descuento' | 'recargo'; monto_usd: string; motivo: string }[];
+    },
+    usuarioId: string,
+  ) {
+    const r = await this.reservaRepo.findOne({ where: { id } });
+    if (!r) throw ApiError.noEncontrado('Reserva');
+    if (['cancelada', 'expirada', 'completada'].includes(r.estado)) {
+      throw ApiError.transicionInvalida('No se puede editar el precio de una reserva cerrada');
+    }
+
+    // Con pagos registrados el total queda congelado salvo justificación
+    // explícita: si se modificara sin ella, el voucher mostraría un importe
+    // distinto al que el titular pagó y el `esperado_usd` del pago quedaría
+    // desfasado.
+    const pagos = await this.pagoRepo.find({ where: { reserva_id: id } });
+    const registrados = pagos.filter((p) => !['anulado', 'rechazado'].includes(p.estado));
+
+    const motivo = String(body.motivo ?? '').trim();
+    this.validarPrecio(body, motivo);
+
+    const lineasIn = Array.isArray(body.lineas) ? body.lineas : [];
+    const ajustesIn = Array.isArray(body.ajustes) ? body.ajustes : [];
+
+    // ¿El total cambia? (la base de tarifas y pasajeros no se toca aquí).
+    if (registrados.length) {
+      const [pasajeros, tarifas] = await Promise.all([
+        this.pasajeros.find({ where: { reserva_id: id } }),
+        this.tarifas.find({ where: { fecha_tour_id: r.fecha_tour_id } }),
+      ]);
+      const calculo = calcularPrecioAdministrado({
+        pasajeros: pasajeros.map((p) => ({ categoria: CATEGORIA_A_FE(p.categoria) })),
+        tarifas: tarifas.map((t) => ({
+          categoria: CATEGORIA_A_FE(t.categoria),
+          precio_usd: String(t.precio_usd),
+        })),
+        lineas: lineasIn.map((l) => ({
+          concepto: l.concepto,
+          cantidad: l.cantidad,
+          precio_unit_usd: l.precio_unit_usd,
+        })),
+        ajustes: ajustesIn.map((a) => ({
+          tipo: a.tipo,
+          monto_usd: a.monto_usd,
+          motivo: a.motivo,
+        })),
+      });
+      const cambiaTotal = Math.abs(Number(calculo.total_usd) - num(r.total_usd)) > 0.005;
+      const justificacion = String(body.justificacion ?? '').trim();
+      if (cambiaTotal && justificacion.length < 10) {
+        const completo = num(r.total_usd) - (num(r.aprobado_usd) - num(r.reembolsado_usd)) <= 0.005;
+        throw ApiError.validacion(
+          completo
+            ? 'La reserva tiene el pago completo: para modificar el precio hay que escribir una justificación.'
+            : 'La reserva tiene pagos registrados: para modificar el precio hay que escribir una justificación.',
+          [
+            {
+              campo: 'justificacion',
+              codigo: 'PAGOS_REGISTRADOS',
+              mensaje: 'Escribe una justificación (mínimo 10 caracteres).',
+            },
+          ],
+        );
       }
     }
 
@@ -750,6 +854,7 @@ export class AdminFxService {
           valor_anterior: anterior,
           valor_nuevo: {
             motivo,
+            justificacion: String(body.justificacion ?? '').trim() || null,
             lineas: lineasGuardar.map((l) => ({
               concepto: l.concepto,
               cantidad: l.cantidad,
@@ -886,6 +991,81 @@ export class AdminFxService {
     return { ok: true };
   }
 
+  /**
+   * **Confirma la reserva manualmente** (acción de la agencia).
+   *
+   * Cuando el titular no reporta el pago desde el formulario —porque la
+   * agencia lo cobra por adelantado, por transferencia o en el punto de
+   * encuentro— la reserva se queda en `pendiente_pago` y nadie la avanza.
+   * Esta acción la confirma: asigna el código `VJ-AAAA-NNNNN`, convierte el
+   * hold en venta y encola la generación del voucher.
+   *
+   * No exige que el saldo esté en cero: la agencia puede confirmar con un
+   * abono y cobrar el resto al abordar (así funciona el chat de Escapate
+   * Tours). Lo que sí exige es que no queden pagos por validar.
+   */
+  async confirmarReserva(id: string, body: { motivo?: string }, usuarioId: string) {
+    const r = await this.reservaRepo.findOne({ where: { id } });
+    if (!r) throw ApiError.noEncontrado('Reserva');
+    if (!['pendiente_pago', 'pago_en_verificacion'].includes(r.estado)) {
+      throw ApiError.transicionInvalida(
+        `No se puede confirmar una reserva en estado ${r.estado}`,
+      );
+    }
+
+    // Sin firma de términos no se confirma: el voucher la necesita.
+    const firma = await this.firmas.findOne({ where: { reserva_id: id, vigente: true } });
+    if (!firma) {
+      throw ApiError.validacion('La reserva todavía no tiene firma de términos vigente', [
+        { campo: 'firma', codigo: 'SIN_FIRMA', mensaje: 'Falta la firma de los términos.' },
+      ]);
+    }
+
+    // Pagos sin validar: si se confirmara con ellos abiertos, al aprobarlos
+    // después la máquina de estados chocaría (resolver_pago exige estar en
+    // `pago_en_verificacion`).
+    const porValidar = await this.pagoRepo.find({
+      where: { reserva_id: id, estado: In(['reportado', 'correccion_solicitada']) },
+    });
+    if (porValidar.length) {
+      throw ApiError.validacion('Hay un pago por validar. Apruébalo o anúlalo antes de confirmar.', [
+        { campo: 'pagos', codigo: 'PAGO_POR_VALIDAR', mensaje: 'Hay pagos sin resolver.' },
+      ]);
+    }
+
+    const motivo = String(body.motivo ?? '').trim() || 'Confirmación manual de la agencia';
+    const saldoAntes = Math.max(0, num(r.total_usd) - (num(r.aprobado_usd) - num(r.reembolsado_usd)));
+
+    const actualizada = await this.stateMachine.transicionar(
+      id,
+      'confirmar_pago',
+      { tipo: 'usuario', id: usuarioId },
+      { motivo },
+    );
+
+    await this.auditoriaRepo.save(
+      this.auditoriaRepo.create({
+        ocurrido_en: new Date(),
+        actor_tipo: 'usuario',
+        usuario_id: usuarioId,
+        entidad: 'reserva',
+        entidad_id: id,
+        accion: 'reserva.confirmada_manualmente',
+        valor_anterior: { estado: r.estado, saldo_usd: saldoAntes.toFixed(2) },
+        valor_nuevo: { estado: actualizada.estado, codigo: actualizada.codigo, motivo },
+      }),
+    );
+
+    const detalle = await this.reservaFe(actualizada);
+    return {
+      ok: true,
+      estado: actualizada.estado,
+      codigo: actualizada.codigo ?? '',
+      saldo_usd: (detalle.saldo_usd as string) ?? '0.00',
+      total_usd: actualizada.total_usd ?? '0.00',
+    };
+  }
+
   // =========================================================================
   // Pagos
   // =========================================================================
@@ -987,7 +1167,112 @@ export class AdminFxService {
     );
     void pago;
     await this.pagosService.recalcularEstadoPago(id);
+    // Si el pago cubre el saldo, la reserva queda confirmada (código +
+    // voucher). Antes había que confirmarla a mano.
+    const actualizada = await this.reservaRepo.findOne({ where: { id } });
+    if (actualizada && actualizada.estado === 'pendiente_pago') {
+      const saldo = num(actualizada.total_usd) - (num(actualizada.aprobado_usd) - num(actualizada.reembolsado_usd));
+      if (saldo <= 0.005) {
+        await this.stateMachine.transicionar(id, 'confirmar_pago', { tipo: 'usuario', id: usuarioId }, {
+          motivo: `Pago en efectivo de USD ${monto.toFixed(2)}`,
+        });
+      }
+    }
     return { ok: true };
+  }
+
+  /**
+   * Anota los datos de un pago desde la reserva (el cliente NO reporta nada
+   * por el formulario). El pago queda `reportado` y entra a la cola
+   * «Pagos por validar»; la aprobación sigue el flujo normal de la cola.
+   */
+  async registrarPagoReserva(
+    id: string,
+    body: {
+      metodo_clave: string;
+      monto: string;
+      moneda?: string;
+      fecha_pago?: string;
+      referencia?: string;
+      nota?: string;
+    },
+    usuarioId: string,
+  ) {
+    const reserva = await this.reservaRepo.findOne({ where: { id } });
+    if (!reserva) throw ApiError.noEncontrado('Reserva');
+
+    const metodo = await this.metodos.findOne({
+      where: { clave: String(body.metodo_clave ?? ''), activo: true },
+    });
+    if (!metodo) throw ApiError.validacion('Elige un método de pago activo');
+
+    const moneda = (['USD', 'VES', 'USDT'].includes(String(body.moneda))
+      ? body.moneda
+      : 'USD') as 'USD' | 'VES' | 'USDT';
+    const montoNum = Number(String(body.monto ?? '').replace(',', '.'));
+    if (!Number.isFinite(montoNum) || montoNum <= 0) {
+      throw ApiError.validacion('Escribe un monto válido');
+    }
+
+    let tasa = 1;
+    if (moneda === 'VES') {
+      const vigente = await this.configService.tasaVigente();
+      tasa = Number(vigente?.tasa ?? 0);
+      if (!Number.isFinite(tasa) || tasa <= 0) {
+        throw ApiError.validacion('No hay una tasa de cambio vigente para bolívares');
+      }
+    }
+    const montoUsd = moneda === 'VES' ? montoNum / tasa : montoNum;
+
+    const referencia = body.referencia?.trim() || null;
+    const referenciaNorm = referencia ? referencia.toUpperCase().replace(/[^A-Z0-9]/g, '') : null;
+
+    // Anti-duplicado: mismo método + referencia normalizada en otra reserva.
+    let duplicadoDe: string | null = null;
+    if (referenciaNorm) {
+      const dup = await this.pagoRepo
+        .createQueryBuilder('p')
+        .innerJoin(MetodoPago, 'm', 'm.id = p.metodo_id')
+        .where('m.clave = :clave', { clave: metodo.clave })
+        .andWhere('p.referencia_norm = :ref', { ref: referenciaNorm })
+        .andWhere('p.reserva_id != :rid', { rid: id })
+        .andWhere('p.estado != :anulado', { anulado: 'anulado' })
+        .getOne();
+      duplicadoDe = dup?.id ?? null;
+    }
+
+    const usuario = await this.usuarios.findOne({ where: { id: usuarioId } });
+    const pago = await this.pagoRepo.save(
+      this.pagoRepo.create({
+        reserva_id: id,
+        metodo_id: metodo.id,
+        origen: 'operador',
+        estado: 'reportado',
+        monto_reportado: montoNum.toFixed(2),
+        monto: montoNum.toFixed(2),
+        moneda,
+        tasa: tasa.toFixed(4),
+        monto_usd_equivalente: montoUsd.toFixed(2),
+        esperado_usd: num(reserva.total_usd).toFixed(2),
+        fecha_pago: body.fecha_pago || new Date().toISOString().slice(0, 10),
+        referencia,
+        referencia_norm: referenciaNorm,
+        campos_extra: {
+          _nota: body.nota ?? '',
+          _registrado_por_nombre: usuario?.nombre ?? 'Agencia',
+        },
+        registrado_por: usuarioId,
+        duplicado_de_pago_id: duplicadoDe,
+      }),
+    );
+
+    // La reserva pasa a «pago en verificación» (congela el hold) si el evento
+    // aplica a su estado; en estados como `confirmada` sólo se anota el pago.
+    if (['pendiente_pago', 'pago_en_verificacion'].includes(reserva.estado)) {
+      await this.stateMachine.transicionar(id, 'reportar_pago', { tipo: 'usuario', id: usuarioId });
+    }
+    await this.pagosService.recalcularEstadoPago(id);
+    return { ok: true, pago_id: pago.id };
   }
 
   async reembolsar(id: string, body: { monto: string; metodo: string; motivo: string }, usuarioId: string) {
@@ -1063,22 +1348,8 @@ export class AdminFxService {
       Object.assign(tour, Object.fromEntries(Object.entries(datos).filter(([, v]) => v !== undefined)));
       tour.version += 1;
       await this.tourRepo.save(tour);
-      // Puntos de abordaje
-      if (Array.isArray(body.puntos_abordaje)) {
-        await this.puntos.delete({ tour_id: id });
-        const lista = (body.puntos_abordaje as Record<string, unknown>[]).map((p, i) =>
-          this.puntos.create({
-            tour_id: id,
-            clave: String(p.id ?? `punto_${i}`),
-            nombre: String(p.nombre ?? ''),
-            hora: String(p.hora ?? '08:00'),
-            referencia: (p.referencia_ubicacion as string) ?? (p.mapa_url as string) ?? null,
-            orden: i,
-            activo: true,
-          }),
-        );
-        if (lista.length) await this.puntos.save(lista);
-      }
+      // Los puntos de abordaje se administran en el catálogo global
+      // (`/config/puntos-salida`): `body.puntos_abordaje` se ignora aquí.
       return this.tourFe(tour);
     }
     const tour = await this.tourRepo.save(
@@ -1110,10 +1381,6 @@ export class AdminFxService {
         actualizado_en: undefined as never,
       } as unknown as Tour),
     );
-    const puntos = await this.puntos.find({ where: { tour_id: id } });
-    if (puntos.length) {
-      await this.puntos.save(puntos.map((p) => this.puntos.create({ ...p, id: undefined as never, tour_id: copia.id, creado_en: undefined as never, actualizado_en: undefined as never })));
-    }
     return this.tourFe(copia);
   }
 

@@ -9,10 +9,22 @@ import {
   PlantillaTerminosVersion,
   PoliticaCancelacion,
   CodigoPromocional,
+  PuntoSalida,
+  Reserva,
+  Pasajero,
 } from '../../database/entities';
 import { ApiError } from '../../common/errors';
 import { sha256Hex } from '../../common/crypto.util';
 import { CONFIG_POR_DEFECTO } from '../../database/seed';
+
+export interface PuntoSalidaDto {
+  clave?: string;
+  nombre?: string;
+  hora?: string;
+  referencia?: string | null;
+  orden?: number;
+  activo?: boolean;
+}
 
 @Injectable()
 export class ConfiguracionService {
@@ -24,6 +36,9 @@ export class ConfiguracionService {
     @InjectRepository(PlantillaTerminosVersion) private readonly versiones: Repository<PlantillaTerminosVersion>,
     @InjectRepository(PoliticaCancelacion) private readonly politicas: Repository<PoliticaCancelacion>,
     @InjectRepository(CodigoPromocional) private readonly promos: Repository<CodigoPromocional>,
+    @InjectRepository(PuntoSalida) private readonly puntos: Repository<PuntoSalida>,
+    @InjectRepository(Reserva) private readonly reservas: Repository<Reserva>,
+    @InjectRepository(Pasajero) private readonly pasajeros: Repository<Pasajero>,
   ) {}
 
   // ── configuración clave/valor ─────────────────────────────────────────
@@ -115,6 +130,129 @@ export class ConfiguracionService {
 
   listarPoliticas() {
     return this.politicas.find({ order: { creado_en: 'ASC' } });
+  }
+
+  // ── puntos de salida (catálogo global) ────────────────────────────────
+
+  listarPuntos(incluirInactivos = true) {
+    return this.puntos.find({
+      where: incluirInactivos ? {} : { activo: true },
+      order: { orden: 'ASC', creado_en: 'ASC' },
+    });
+  }
+
+  /** Puntos activos, en el orden en que los ve el formulario público. */
+  puntosActivos() {
+    return this.puntos.find({ where: { activo: true }, order: { orden: 'ASC', creado_en: 'ASC' } });
+  }
+
+  async crearPunto(dto: PuntoSalidaDto) {
+    const nombre = String(dto.nombre ?? '').trim();
+    const hora = String(dto.hora ?? '').trim();
+    if (!nombre) throw ApiError.validacion('El punto necesita un nombre');
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) {
+      throw ApiError.validacion('La hora debe tener formato HH:MM, por ejemplo 06:30');
+    }
+
+    const clave = this.slugPunto(dto.clave || nombre);
+    const duplicada = await this.puntos.findOne({ where: { clave } });
+    if (duplicada) throw ApiError.validacion(`Ya existe un punto con la clave «${clave}»`);
+
+    const max = await this.puntos.maximum('orden', {});
+    return this.puntos.save(
+      this.puntos.create({
+        clave,
+        nombre,
+        hora,
+        referencia: dto.referencia?.trim() || null,
+        orden: dto.orden ?? (max ?? -1) + 1,
+        activo: dto.activo !== false,
+      }),
+    );
+  }
+
+  async actualizarPunto(id: string, dto: PuntoSalidaDto) {
+    const punto = await this.puntos.findOne({ where: { id } });
+    if (!punto) throw ApiError.noEncontrado('Punto de salida');
+
+    if (dto.nombre !== undefined) {
+      const nombre = String(dto.nombre).trim();
+      if (!nombre) throw ApiError.validacion('El punto necesita un nombre');
+      punto.nombre = nombre;
+    }
+    if (dto.hora !== undefined) {
+      const hora = String(dto.hora).trim();
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) {
+        throw ApiError.validacion('La hora debe tener formato HH:MM, por ejemplo 06:30');
+      }
+      punto.hora = hora;
+    }
+    if (dto.clave !== undefined) {
+      const clave = this.slugPunto(dto.clave);
+      if (clave !== punto.clave) {
+        if (await this.puntoEnUso(punto.clave)) {
+          throw ApiError.validacion('Este punto ya se usó en reservas: su clave no puede cambiar');
+        }
+        const duplicada = await this.puntos.findOne({ where: { clave } });
+        if (duplicada) throw ApiError.validacion(`Ya existe un punto con la clave «${clave}»`);
+        punto.clave = clave;
+      }
+    }
+    if (dto.referencia !== undefined) punto.referencia = String(dto.referencia).trim() || null;
+    if (dto.orden !== undefined) punto.orden = Number(dto.orden) || 0;
+    if (dto.activo !== undefined) punto.activo = Boolean(dto.activo);
+
+    if (punto.activo === false && (await this.puntoEnUso(punto.clave))) {
+      throw ApiError.validacion(
+        'Este punto ya se usó en reservas: no se puede quitar. Puedes cambiarle el nombre u ocultarlo más tarde.',
+      );
+    }
+
+    return this.puntos.save(punto);
+  }
+
+  /**
+   * Eliminar: si el punto nunca se usó se borra; si ya aparece en reservas
+   * se desactiva para no romper el historial. Un punto ya inactivo se borra.
+   */
+  async eliminarPunto(id: string) {
+    const punto = await this.puntos.findOne({ where: { id } });
+    if (!punto) throw ApiError.noEncontrado('Punto de salida');
+
+    if (punto.activo && (await this.puntoEnUso(punto.clave))) {
+      punto.activo = false;
+      await this.puntos.save(punto);
+      return { ...punto, eliminado: false };
+    }
+    await this.puntos.delete({ id });
+    return { ...punto, activo: false, eliminado: true };
+  }
+
+  private slugPunto(texto: string): string {
+    const slug = String(texto)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 40);
+    if (!slug) throw ApiError.validacion('El punto necesita un nombre válido');
+    return slug;
+  }
+
+  /** ¿El valor `clave` aparece en respuestas guardadas de reservas o pasajeros? */
+  private async puntoEnUso(clave: string): Promise<boolean> {
+    const patron = `%"${clave}"%`;
+    const enReservas = await this.reservas
+      .createQueryBuilder('r')
+      .where('r.respuestas_globales LIKE :v', { v: patron })
+      .getCount();
+    if (enReservas > 0) return true;
+    const enPasajeros = await this.pasajeros
+      .createQueryBuilder('p')
+      .where('p.respuestas LIKE :v', { v: patron })
+      .getCount();
+    return enPasajeros > 0;
   }
 
   // ── códigos promocionales ─────────────────────────────────────────────

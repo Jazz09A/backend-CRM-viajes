@@ -1,0 +1,2420 @@
+{
+  "version": 1,
+  "origen": "Chat WhatsApp «Escapate Tours» exportado el 06/11/2026 (archivo 'Chat de WhatsApp con Escapate Tours.txt')",
+  "reglas": [
+    "'REF n' se interpreta como precio en USD por persona (el sistema sólo maneja USD).",
+    "Los precios 'por pareja' se convierten a precio unitario por persona; el descuento por pareja o por grupo se aplica como ajuste manual desde la reserva.",
+    "Los planes con inclusiones distintas (full/básico, con/sin comidas) se cargan como tours separados (RF-1.3: duplicar tour para variantes).",
+    "Categorías de tarifa: nino y tercera_edad toman el precio adulto porque el chat no los diferencia; infante (0-2) queda en 0.00.",
+    "Fecha de salida de los viajes con hospedaje = el día previo a la noche de salida indicada en el chat.",
+    "Los cupos no vienen en el chat: 40 por salida en full day, 24 en multi-día, salvo indicación en el tour.",
+    "En los tours con «salida la noche anterior», fecha_salida guarda el día en que sale el bus (la noche previa al viaje); el día de actividad queda anotado en las notas del tour."
+  ],
+  "politicas": [
+    {
+      "clave": "full_day",
+      "nombre": "Política de cancelación — Full Days",
+      "tramos": [
+        {
+          "dias_min": 7,
+          "dias_max": null,
+          "reembolso_pct": 100
+        },
+        {
+          "dias_min": 3,
+          "dias_max": 6,
+          "reembolso_pct": 50
+        },
+        {
+          "dias_min": 0,
+          "dias_max": 2,
+          "reembolso_pct": 0
+        }
+      ]
+    },
+    {
+      "clave": "multi_dia",
+      "nombre": "Política de cancelación — Hospedaje y multi-día",
+      "tramos": [
+        {
+          "dias_min": 15,
+          "dias_max": null,
+          "reembolso_pct": 100
+        },
+        {
+          "dias_min": 7,
+          "dias_max": 14,
+          "reembolso_pct": 75
+        },
+        {
+          "dias_min": 3,
+          "dias_max": 6,
+          "reembolso_pct": 50
+        },
+        {
+          "dias_min": 0,
+          "dias_max": 2,
+          "reembolso_pct": 0
+        }
+      ]
+    }
+  ],
+  "terminos": {
+    "nombre": "Términos y condiciones — Escapate Tours",
+    "contenido": "## 1. Objeto del servicio\n\nEscapate Tours comercializa tours turísticos Full Days, fines de semana y viajes con hospedaje desde Caracas, Guarenas y Guatire hacia destinos nacionales. La reserva formaliza el derecho del titular a ocupar el cupo asignado en la salida seleccionada y los servicios descritos en el itinerario del tour.\n\n## 2. Reserva y compromiso de asistencia\n\n1. Se debe reservar por persona para asegurar su participación. En los viajes modalidad Full Day la reserva es de 20 por persona; en los viajes con hospedaje varía el monto según el destino.\n2. El pago de la reservación es el compromiso de asistencia. De no poder asistir al viaje no hacemos devolución ni se deja abonado para otro fullday.\n3. Los cupos son intransferibles y se asignan por orden de pago.\n\n## 3. Métodos de pago y saldo\n\n3. Los métodos de pago pueden ser bolívares, Zelle, Binance y divisas efectivas en nuestra oficina o con nuestros asesores directos en Guatire, Guarenas o Caracas.\n4. El monto restante del paquete debe ser cancelado al momento de abordar la unidad únicamente en divisas efectivo. Si se paga por otro método (Bs, Zelle o Binance) debe realizarse 3 días antes del viaje.\n\n## 4. Condiciones del transporte\n\n5. Queda prohibido el consumo de bebidas alcohólicas dentro de la unidad de transporte.\n6. No se deben colocar envases de vidrio en el porta equipaje interior.\n7. Los puntos de encuentro y horarios de salida son los publicados para cada salida; se debe estar presente 15 minutos antes. Después de la hora pautada sólo se espera un máximo de 10 minutos.\n8. Los puntos de encuentro de salida son los mismos que se usan en el retorno. La compañía de traslado no permite paradas diferentes.\n\n## 5. Menores de edad y documentación\n\n6. Los niños a partir de 5 años cancelan su cupo completo. Debe enviarse la foto de la partida de nacimiento para el proceso de reserva. Para menores de 5 años consultar el costo según el destino.\n7. Es obligatorio viajar con cédula laminada. Sin cédula laminada no se viaja. Los menores de edad deben presentar copia partida de nacimiento.\n\n## 6. Cupos, quórum y fuerza mayor\n\n8. Nuestros viajes terrestres dependen de una cantidad mínima de personas para su realización. En caso de no cumplirse el quórum se notificará mínimo 3 días antes del viaje, ofreciendo alternativas y próximas fechas.\n9. Si por razones de casos fortuitos o de fuerza mayor (condiciones climatológicas, manifestaciones, suspensión de zarpe, pronunciamiento del Ejecutivo Nacional, pandemia, etc.) es necesario reprogramar el viaje, no hacemos devolución de dinero. Se aplicarán las penalidades y descuentos correspondientes según cada caso.\n10. Si el cliente no asiste el día del viaje se declara No Show.\n\n## 7. Evidencia de pago\n\n10. Luego de realizar su pago y ser previamente confirmado por nuestros asesores, se le enviará el comprobante."
+  },
+  "puntos_salida": [
+    {
+      "clave": "guatire_castillejo",
+      "ciudad": "Guatire",
+      "nombre": "Emporium Nuevo Castillejo",
+      "referencia": "Ref. al lado del terminal de Guatire"
+    },
+    {
+      "clave": "guatire_kiosco",
+      "ciudad": "Guatire",
+      "nombre": "Kiosco blanco",
+      "referencia": "Diagonal a la antigua SAS, C.C. Castillejo"
+    },
+    {
+      "clave": "guarenas_farmatodo",
+      "ciudad": "Guarenas",
+      "nombre": "Farmatodo Trocha de Nueva Casarapa",
+      "referencia": "Ref. al frente de Makro"
+    },
+    {
+      "clave": "guarenas_torreon",
+      "ciudad": "Guarenas",
+      "nombre": "El Torreón",
+      "referencia": "Ref. parada de línea de Caracas Nuevo Mundo"
+    },
+    {
+      "clave": "caracas_terminal",
+      "ciudad": "Caracas",
+      "nombre": "Terminal nuevo 421",
+      "referencia": "Detrás de zona rental"
+    },
+    {
+      "clave": "caracas_parque_miranda",
+      "ciudad": "Caracas",
+      "nombre": "Parque Miranda",
+      "referencia": "Estación del metro"
+    },
+    {
+      "clave": "caracas_altamira",
+      "ciudad": "Caracas",
+      "nombre": "Altamira Centro Plaza",
+      "referencia": "Centro comercial"
+    },
+    {
+      "clave": "caracas_plaza_venezuela",
+      "ciudad": "Caracas",
+      "nombre": "Plaza Venezuela Torre Polar",
+      "referencia": "Base de la torre Polar"
+    },
+    {
+      "clave": "caracas_previsora",
+      "ciudad": "Caracas",
+      "nombre": "Plaza Venezuela Torre la Previsora",
+      "referencia": "Salida exclusiva de la Ruta del Ron"
+    }
+  ],
+  "tours": [
+    {
+      "clave": "trincheras-valencia",
+      "nombre": "Full Day Las Trincheras · Aguas Termales Balneario Spa, Valencia",
+      "tipo": "full_day",
+      "familia": "Carabobo",
+      "politica": "full_day",
+      "hora_salida": "05:15",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day al Balneario Spa de Las Trincheras en Valencia, Estado Carabobo. Salida y retorno el mismo día con traslado privado, entrada a las aguas termales y todas las comidas.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "05:15"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "05:15"
+        },
+        {
+          "clave": "caracas_plaza_venezuela",
+          "hora": "06:00"
+        }
+      ],
+      "precios": {
+        "adulto": 45,
+        "nino": 45,
+        "tercera_edad": 45,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-21",
+        "2026-12-06"
+      ],
+      "incluye": [
+        "Traslado privado en unidad cómoda con aire y asientos reclinables",
+        "Entrada a las Aguas Termales: piscinas de aguas termales, sauna, spa, piscina de lodo, duchas y piscinas naturales",
+        "Desayuno: 2 empanadas (cazón, molida, pollo o queso) + jugo + café",
+        "Almuerzo completo por participante en restaurante con bebida y postre",
+        "Merienda",
+        "Brazalete identificador",
+        "Hidratación: agua y hielo durante el día hasta agotarse",
+        "Foto grupal",
+        "Atención personalizada"
+      ],
+      "no_incluye": [
+        "Consumos personales",
+        "Traslado hacia los puntos de salida"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Salida",
+          "detalle": "Guatire y Guarenas 5:15 a. m., Caracas 6:00 a. m."
+        },
+        {
+          "titulo": "Día en el balneario",
+          "detalle": "Uso de todas las instalaciones del Balneario Spa durante la jornada."
+        },
+        {
+          "titulo": "Retorno",
+          "detalle": "Salida del balneario 4:30 p. m., llegada a Caracas aproximadamente 7:30 p. m."
+        }
+      ],
+      "notas": [
+        "Retorno 4:30 p. m. y llegada a Caracas aprox. 7:30 p. m."
+      ]
+    },
+    {
+      "clave": "higuerote-plan-full",
+      "nombre": "La Playita 2 Kanaloa · Higuerote · Plan Full",
+      "tipo": "full_day",
+      "familia": "Higuerote",
+      "politica": "full_day",
+      "hora_salida": "06:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a La Playita 2 Kanaloa en Higuerote con traslado en lancha ida y vuelta y todas las comidas incluidas.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "06:30"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "06:30"
+        },
+        {
+          "clave": "caracas_altamira",
+          "hora": "06:00"
+        }
+      ],
+      "precios": {
+        "adulto": 40,
+        "nino": 40,
+        "tercera_edad": 40,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-22",
+        "2026-12-27"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada"
+      ],
+      "no_incluye": [
+        "Toldos y sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Existe un plan básico sin comidas por REF 30 (tour separado).",
+        "Retorno 4:30 p. m."
+      ]
+    },
+    {
+      "clave": "higuerote-plan-basico",
+      "nombre": "La Playita 2 Kanaloa · Higuerote · Plan Básico sin comidas",
+      "tipo": "full_day",
+      "familia": "Higuerote",
+      "politica": "full_day",
+      "hora_salida": "06:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a La Playita 2 Kanaloa en Higuerote sin comidas incluidas: transporte y lancha ida y vuelta.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "06:30"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "06:30"
+        },
+        {
+          "clave": "caracas_altamira",
+          "hora": "06:00"
+        }
+      ],
+      "precios": {
+        "adulto": 30,
+        "nino": 30,
+        "tercera_edad": 30,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-22",
+        "2026-12-27"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Recuerdos fotográficos",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada"
+      ],
+      "no_incluye": [
+        "Desayuno",
+        "Almuerzo playero",
+        "Toldos y sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Mismas salidas que el plan full.",
+        "Retorno 4:30 p. m."
+      ]
+    },
+    {
+      "clave": "chuspa-playa-caribe",
+      "nombre": "Playa Caribe · Chuspa",
+      "tipo": "full_day",
+      "familia": "Chuspa",
+      "politica": "full_day",
+      "hora_salida": "06:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Playa Caribe en Chuspa con promo de días de semana: transporte, lancha, comidas y actividades recreativas.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "06:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "06:00"
+        },
+        {
+          "clave": "caracas_altamira",
+          "hora": "06:00"
+        }
+      ],
+      "precios": {
+        "adulto": 48,
+        "nino": 48,
+        "tercera_edad": 48,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-12-20"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Brindis grupal",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más",
+        "Paseo Río Guayabal si las condiciones lo permiten"
+      ],
+      "no_incluye": [
+        "Toldos y sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "El chat no indica hora de salida: se usa 6:00 a. m. como horario de referencia."
+      ]
+    },
+    {
+      "clave": "chuspa-el-indio",
+      "nombre": "Playa El Indio · Chuspa",
+      "tipo": "full_day",
+      "familia": "Chuspa",
+      "politica": "full_day",
+      "hora_salida": "05:30",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Playa El Indio en Chuspa con merienda, brindis, vaso personal playero y paseo al Río Guayabal.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "05:30"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "05:30"
+        },
+        {
+          "clave": "caracas_altamira",
+          "hora": "06:00"
+        }
+      ],
+      "precios": {
+        "adulto": 48,
+        "nino": 48,
+        "tercera_edad": 48,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-14",
+        "2026-12-05"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más",
+        "Paseo Río Guayabal 2 puertas (si las condiciones lo permiten)"
+      ],
+      "no_incluye": [
+        "Toldos y sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Retorno 4:00 p. m."
+      ]
+    },
+    {
+      "clave": "colonia-tovar-junquito",
+      "nombre": "Colonia Tovar y Junquito · Aragua",
+      "tipo": "full_day",
+      "familia": "Aragua",
+      "politica": "full_day",
+      "hora_salida": "06:00",
+      "reserva_usd": 20,
+      "cupos": 24,
+      "descripcion": "Full day en jeeps exclusivos de 8 personas por la Colonia Tovar y el Junquito: recorrido por paradores turísticos, Chocolatico, fábrica de cerveza, vino coloniero y visita al Parque Macarao.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "06:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "06:00"
+        },
+        {
+          "clave": "caracas_plaza_venezuela",
+          "hora": "06:00"
+        }
+      ],
+      "precios": {
+        "adulto": 55,
+        "nino": 55,
+        "tercera_edad": 55,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-28",
+        "2026-12-13"
+      ],
+      "incluye": [
+        "Traslado en jeeps exclusivos para 8 personas",
+        "Fotos grupales",
+        "Hidratación constante",
+        "Visita al Parque Macarao",
+        "Desayuno: 2 empanadas + bebida",
+        "Almuerzo: cachapa con queso + bebida",
+        "Recorrido por la parte alta de la Colonia Tovar: Chocolatico, fábrica de cerveza, vino coloniero y casita en el árbol",
+        "Visita al Junquito"
+      ],
+      "no_incluye": [
+        "Entrada a la casita del árbol (USD 2 por persona, se paga directo al llegar)",
+        "Consumos personales"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Recorrido en jeeps",
+          "detalle": "Parte alta de la Colonia Tovar con paradores turísticos."
+        },
+        {
+          "titulo": "Junquito",
+          "detalle": "Visita al pueblo del Junquito antes del retorno."
+        }
+      ],
+      "notas": [
+        "Retorno 5:00 p. m.",
+        "Se puede armar un grupo privado de 8 personas todo incluido y eligen la fecha.",
+        "El chat anuncia este tour como 'DOMINGO 28 DE NOVIEMBRE', pero el 28/11/2026 es sabado: se cargo la fecha del calendario (sabado 28)."
+      ]
+    },
+    {
+      "clave": "morrocoy-punta-varadero",
+      "nombre": "Morrocoy · Punta Varadero",
+      "tipo": "full_day",
+      "familia": "Morrocoy",
+      "politica": "full_day",
+      "hora_salida": "21:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Punta Varadero en el Parque Nacional Morrocoy con salida la noche anterior desde Guarenas, Guatire y Caracas.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 50,
+        "nino": 50,
+        "tercera_edad": 50,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-12-04"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Salida la noche anterior desde Guarenas, Guatire y Caracas.",
+        "El chat anuncia el viaje para el sabado 05/12/2026; la salida del bus es la noche anterior (viernes 04/12/2026)."
+      ]
+    },
+    {
+      "clave": "morrocoy-playa-mero",
+      "nombre": "Morrocoy · Playa Mero",
+      "tipo": "full_day",
+      "familia": "Morrocoy",
+      "politica": "full_day",
+      "hora_salida": "21:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Playa Mero en Morrocoy con paseo a Bajo 360.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 60,
+        "nino": 60,
+        "tercera_edad": 60,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-12-12"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno (2 empanadas) + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más",
+        "Paseo a Bajo 360 (30 min aprox.)"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el domingo 13/12/2026; la salida del bus es la noche anterior (sabado 12/12/2026)."
+      ]
+    },
+    {
+      "clave": "morrocoy-cayo-playuela",
+      "nombre": "Morrocoy · Cayo Playuela",
+      "tipo": "full_day",
+      "familia": "Morrocoy",
+      "politica": "full_day",
+      "hora_salida": "21:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Cayo Playuela con paseo a Bajo 360 o Bajo los Juanes.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 60,
+        "nino": 60,
+        "tercera_edad": 60,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-12-19"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más",
+        "Paseo a Bajo 360 o Bajo los Juanes (30 min aprox.)"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el domingo 20/12/2026; la salida del bus es la noche anterior (sabado 19/12/2026)."
+      ]
+    },
+    {
+      "clave": "morrocoy-boca-seca",
+      "nombre": "Morrocoy · Cayo Boca Seca",
+      "tipo": "full_day",
+      "familia": "Morrocoy",
+      "politica": "full_day",
+      "hora_salida": "21:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Cayo Boca Seca con paseo a Bajo 360.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 60,
+        "nino": 60,
+        "tercera_edad": 60,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-12-18",
+        "2027-01-02"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más",
+        "Paseo Bajo 360"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el sabado 19/12/2026, domingo 03/01/2027; la salida del bus es la noche anterior (viernes 18/12/2026, sabado 02/01/2027)."
+      ]
+    },
+    {
+      "clave": "morrocoy-cayo-azul",
+      "nombre": "Morrocoy · Cayo Azul o Playa Sur",
+      "tipo": "full_day",
+      "familia": "Morrocoy",
+      "politica": "full_day",
+      "hora_salida": "21:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Cayo Azul o Playa Sur con paseo a Bajo 360 o los Juanes.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 60,
+        "nino": 60,
+        "tercera_edad": 60,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-12-11",
+        "2027-01-05"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más",
+        "Paseo a Bajo 360 o los Juanes (30 min aproximadamente)"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "El chat anunciaba también el sábado 31 de octubre, fecha ya transcurrida: se omitió.",
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el sabado 12/12/2026, miercoles 06/01/2027; la salida del bus es la noche anterior (viernes 11/12/2026, martes 05/01/2027)."
+      ]
+    },
+    {
+      "clave": "morrocoy-cayo-sal",
+      "nombre": "Morrocoy · Cayo Sal",
+      "tipo": "full_day",
+      "familia": "Morrocoy",
+      "politica": "full_day",
+      "hora_salida": "21:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Cayo Sal en Morrocoy.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 50,
+        "nino": 50,
+        "tercera_edad": 50,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-12-05",
+        "2027-01-15"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el domingo 06/12/2026, sabado 16/01/2027; la salida del bus es la noche anterior (sabado 05/12/2026, viernes 15/01/2027)."
+      ]
+    },
+    {
+      "clave": "morrocoy-cayo-muerto-paseo",
+      "nombre": "Morrocoy · Cayo Muerto + Paseo",
+      "tipo": "full_day",
+      "familia": "Morrocoy",
+      "politica": "full_day",
+      "hora_salida": "21:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Cayo Muerto con paseo corto: barco hundido, los canales, Túnel del Amor, Cueva de la Virgen, Cueva del Indio y Cayo Sombrero.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 60,
+        "nino": 60,
+        "tercera_edad": 60,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-12-11"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más",
+        "Paseo corto: barco hundido, los canales, Túnel del Amor, Cueva de la Virgen, Cueva del Indio y Cayo Sombrero"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Paseo corto",
+          "detalle": "Barco hundido, los canales, Túnel del Amor, Cueva de la Virgen y Cueva del Indio."
+        },
+        {
+          "titulo": "Cayo Muerto",
+          "detalle": "Paseo por Cayo Sombrero y el resto del día a disfrutar en Cayo Muerto."
+        }
+      ],
+      "notas": [
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el sabado 12/12/2026; la salida del bus es la noche anterior (viernes 11/12/2026)."
+      ]
+    },
+    {
+      "clave": "morrocoy-cayo-muerto",
+      "nombre": "Morrocoy · Cayo Muerto",
+      "tipo": "full_day",
+      "familia": "Morrocoy",
+      "politica": "full_day",
+      "hora_salida": "21:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Cayo Muerto en Morrocoy.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 50,
+        "nino": 50,
+        "tercera_edad": 50,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-14",
+        "2026-12-10",
+        "2026-12-25",
+        "2027-01-08"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el domingo 15/11/2026, viernes 11/12/2026, sabado 26/12/2026, sabado 09/01/2027; la salida del bus es la noche anterior (sabado 14/11/2026, jueves 10/12/2026, viernes 25/12/2026, viernes 08/01/2027)."
+      ]
+    },
+    {
+      "clave": "morrocoy-cayo-sombrero",
+      "nombre": "Morrocoy · Cayo Sombrero",
+      "tipo": "full_day",
+      "familia": "Morrocoy",
+      "politica": "full_day",
+      "hora_salida": "21:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Cayo Sombrero con paseo a Bajo 360 o Bajo los Juanes.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 60,
+        "nino": 60,
+        "tercera_edad": 60,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-20",
+        "2026-12-26",
+        "2027-01-09"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno (2 empanadas) + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más",
+        "Paseo a Bajo 360 o Bajo los Juanes (30 min aprox.)"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el sabado 21/11/2026, domingo 27/12/2026, domingo 10/01/2027; la salida del bus es la noche anterior (viernes 20/11/2026, sabado 26/12/2026, sabado 09/01/2027)."
+      ]
+    },
+    {
+      "clave": "mochima-punta-la-cruz",
+      "nombre": "Mochima · Punta la Cruz",
+      "tipo": "full_day",
+      "familia": "Mochima",
+      "politica": "full_day",
+      "hora_salida": "23:45",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Punta la Cruz con paseo por el Parque Nacional Mochima y posibilidad de ver delfines.",
+      "puntos": [
+        {
+          "clave": "guatire_kiosco",
+          "hora": "23:45"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "23:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 60,
+        "nino": 60,
+        "tercera_edad": 60,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-28"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más",
+        "Paseo por el Parque Nacional Mochima con la posibilidad de ver delfines"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "No es totalmente seguro que se vean los delfines: existen factores climáticos que influyen.",
+        "El chat indica reserva de 20 USD por persona (escrito con '$').",
+        "El chat anuncia el viaje para el domingo 29/11/2026; la salida del bus es la noche anterior (sabado 28/11/2026)."
+      ]
+    },
+    {
+      "clave": "mochima-playa-blanca",
+      "nombre": "Mochima · Playa Blanca",
+      "tipo": "full_day",
+      "familia": "Mochima",
+      "politica": "full_day",
+      "hora_salida": "23:45",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Playa Blanca con brindis de bienvenida y recuerdos fotográficos.",
+      "puntos": [
+        {
+          "clave": "guatire_kiosco",
+          "hora": "23:45"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "23:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 75,
+        "nino": 75,
+        "tercera_edad": 75,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-21",
+        "2026-12-18",
+        "2027-01-01"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Brindis de bienvenida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el domingo 22/11/2026, sabado 19/12/2026, sabado 02/01/2027; la salida del bus es la noche anterior (sabado 21/11/2026, viernes 18/12/2026, viernes 01/01/2027)."
+      ]
+    },
+    {
+      "clave": "mochima-tour-clasico",
+      "nombre": "Tour Mochima · Gato y Ratón, Delfines, Piscina, Colorada e Isla Arapo",
+      "tipo": "full_day",
+      "familia": "Mochima",
+      "politica": "full_day",
+      "hora_salida": "23:45",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Recorrido por los principales atractivos de Mochima: islotes El Gato y El Ratón, la ruta de los delfines, Playa Piscina, Playa Colorada y paseo a Isla Arapo.",
+      "puntos": [
+        {
+          "clave": "guatire_kiosco",
+          "hora": "23:45"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "23:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 65,
+        "nino": 65,
+        "tercera_edad": 65,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-13",
+        "2026-11-21",
+        "2026-11-29",
+        "2026-12-11",
+        "2026-12-25",
+        "2027-01-01",
+        "2027-01-05"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Lugares a visitar",
+          "detalle": "Islotes El Gato y El Ratón, la ruta de los delfines, Playa Piscina, Playa Colorada y paseo a Isla Arapo."
+        }
+      ],
+      "notas": [
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el sabado 14/11/2026, domingo 22/11/2026, lunes 30/11/2026, sabado 12/12/2026, sabado 26/12/2026, sabado 02/01/2027, miercoles 06/01/2027; la salida del bus es la noche anterior (viernes 13/11/2026, sabado 21/11/2026, domingo 29/11/2026, viernes 11/12/2026, viernes 25/12/2026, viernes 01/01/2027, martes 05/01/2027)."
+      ]
+    },
+    {
+      "clave": "mochima-playa-manare",
+      "nombre": "Mochima · Playa Manare",
+      "tipo": "full_day",
+      "familia": "Mochima",
+      "politica": "full_day",
+      "hora_salida": "23:45",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Playa Manare con paseo a la Cueva de la Virgen y Cueva Manare.",
+      "puntos": [
+        {
+          "clave": "guatire_kiosco",
+          "hora": "23:45"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "23:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 70,
+        "nino": 70,
+        "tercera_edad": 70,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-20",
+        "2026-12-05",
+        "2026-12-18",
+        "2026-12-23",
+        "2027-01-01",
+        "2027-01-04",
+        "2027-01-09"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más",
+        "Paseo a la Cueva de la Virgen y Cueva Manare"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el sabado 21/11/2026, domingo 06/12/2026, sabado 19/12/2026, jueves 24/12/2026, sabado 02/01/2027, martes 05/01/2027, domingo 10/01/2027; la salida del bus es la noche anterior (viernes 20/11/2026, sabado 05/12/2026, viernes 18/12/2026, miercoles 23/12/2026, viernes 01/01/2027, lunes 04/01/2027, sabado 09/01/2027)."
+      ]
+    },
+    {
+      "clave": "mochima-isla-de-plata",
+      "nombre": "Mochima · Isla de Plata",
+      "tipo": "full_day",
+      "familia": "Mochima",
+      "politica": "full_day",
+      "hora_salida": "23:45",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Isla de Plata con paseo por el Parque Nacional Mochima y posibilidad de ver delfines.",
+      "puntos": [
+        {
+          "clave": "guatire_kiosco",
+          "hora": "23:45"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "23:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 60,
+        "nino": 60,
+        "tercera_edad": 60,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-14",
+        "2026-11-29",
+        "2026-12-04",
+        "2026-12-12",
+        "2027-01-02",
+        "2027-01-03"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más",
+        "Paseo por el Parque Nacional Mochima con la posibilidad de ver delfines"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "No es totalmente seguro que se vean los delfines: existen factores climáticos que influyen.",
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el domingo 15/11/2026, lunes 30/11/2026, sabado 05/12/2026, domingo 13/12/2026, domingo 03/01/2027, lunes 04/01/2027; la salida del bus es la noche anterior (sabado 14/11/2026, domingo 29/11/2026, viernes 04/12/2026, sabado 12/12/2026, sabado 02/01/2027, domingo 03/01/2027)."
+      ]
+    },
+    {
+      "clave": "ocumare-la-cienaga",
+      "nombre": "Ocumare de la Costa · La Ciénaga",
+      "tipo": "full_day",
+      "familia": "Ocumare de la Costa",
+      "politica": "full_day",
+      "hora_salida": "21:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a La Ciénaga en Ocumare de la Costa.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 60,
+        "nino": 60,
+        "tercera_edad": 60,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-13",
+        "2026-12-12",
+        "2027-01-08"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Traslado en lancha ida y vuelta",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el sabado 14/11/2026, domingo 13/12/2026, sabado 09/01/2027; la salida del bus es la noche anterior (viernes 13/11/2026, sabado 12/12/2026, viernes 08/01/2027)."
+      ]
+    },
+    {
+      "clave": "ocumare-catica",
+      "nombre": "Ocumare de la Costa · Catica",
+      "tipo": "full_day",
+      "familia": "Ocumare de la Costa",
+      "politica": "full_day",
+      "hora_salida": "21:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Catica en Ocumare de la Costa con traslado en lancha ida y vuelta.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 50,
+        "nino": 50,
+        "tercera_edad": 50,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-14",
+        "2026-12-12",
+        "2027-01-08"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más",
+        "Traslado en lancha ida y vuelta"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el domingo 15/11/2026, domingo 13/12/2026, sabado 09/01/2027; la salida del bus es la noche anterior (sabado 14/11/2026, sabado 12/12/2026, viernes 08/01/2027)."
+      ]
+    },
+    {
+      "clave": "ocumare-bahia-cata",
+      "nombre": "Ocumare de la Costa · Bahía Cata",
+      "tipo": "full_day",
+      "familia": "Ocumare de la Costa",
+      "politica": "full_day",
+      "hora_salida": "21:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a Bahía Cata en Ocumare de la Costa.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 45,
+        "nino": 45,
+        "tercera_edad": 45,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-28",
+        "2026-12-26",
+        "2027-01-02",
+        "2027-01-05"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Salida la noche anterior.",
+        "El chat anuncia el viaje para el domingo 29/11/2026, domingo 27/12/2026, domingo 03/01/2027, miercoles 06/01/2027; la salida del bus es la noche anterior (sabado 28/11/2026, sabado 26/12/2026, sabado 02/01/2027, martes 05/01/2027)."
+      ]
+    },
+    {
+      "clave": "ruta-del-ron",
+      "nombre": "Hacienda Santa Teresa · La Ruta del Ron",
+      "tipo": "full_day",
+      "familia": "Aragua",
+      "politica": "full_day",
+      "hora_salida": "12:30",
+      "reserva_usd": 20,
+      "cupos": 24,
+      "descripcion": "Full day a la Hacienda Santa Teresa: recorrido histórico por la Casa Tovar y la Cruz de Aragua, proceso artesanal del ron en destiladora, bodegas y área de envasado, y charlas del Proyecto Alcatraz.",
+      "puntos": [
+        {
+          "clave": "caracas_previsora",
+          "hora": "12:30"
+        },
+        {
+          "clave": "guatire_castillejo",
+          "hora": "12:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "12:00"
+        }
+      ],
+      "precios": {
+        "adulto": 70,
+        "nino": 70,
+        "tercera_edad": 70,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-29",
+        "2026-12-19"
+      ],
+      "incluye": [
+        "Traslado privado en unidad cómoda con aire acondicionado y asientos reclinables",
+        "Boleto de entrada a la Hacienda y brazalete",
+        "Ruta del Ron: recorrido completo por la Hacienda en 5 estaciones (1 hora 45 minutos)",
+        "3 cócteles exclusivos de la marca por persona (los niños toman jugo sin licor)",
+        "Guía de turismo con experiencia, atención personalizada, recibimiento y abordaje"
+      ],
+      "no_incluye": [
+        "Almuerzo (Restaurante Zafra desde USD 15)",
+        "Barra de cócteles y tienda de souvenirs"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Salida",
+          "detalle": "Caracas Plaza Venezuela Torre la Previsora 12:30 p. m.; Guatire y Guarenas previa coordinación."
+        },
+        {
+          "titulo": "Recorrido",
+          "detalle": "Casa Tovar, Cruz de Aragua, destiladora, bodegas y área de envasado."
+        },
+        {
+          "titulo": "Retorno",
+          "detalle": "Salida de la Hacienda 6:30 p. m., llegada a Caracas aproximadamente 8:00 p. m."
+        }
+      ],
+      "notas": [
+        "Tarifa: 1 persona USD 70 · 2 personas USD 120 (USD 60 c/u). La tarifa cargada es la de 1 persona; para 2 personas aplicar un descuento de USD 10 por persona desde la reserva.",
+        "Reserva de USD 20 por persona.",
+        "Formas de pago: pago móvil o transferencia Banesco tasa euro, efectivo en oficina comercial, Zinli y Binance USDT."
+      ]
+    },
+    {
+      "clave": "hotel-mario-morrocoy",
+      "nombre": "Hotel Mario Morrocoy · 2 días / 1 noche",
+      "tipo": "fin_de_semana",
+      "familia": "Morrocoy",
+      "politica": "multi_dia",
+      "hora_salida": "21:00",
+      "reserva_usd": 75,
+      "cupos": 24,
+      "descripcion": "Fin de semana en el Hotel Mario de Morrocoy con piscina, habitaciones con aire y baño privado, 5 destinos a visitar y todas las comidas.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "21:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 200,
+        "nino": 200,
+        "tercera_edad": 200,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-20",
+        "2026-12-11",
+        "2027-01-15"
+      ],
+      "incluye": [
+        "Traslado en unidades con aire acondicionado",
+        "Hidratación constante + hielo en la playa",
+        "Atención personalizada",
+        "Día 1: desayuno + bebida, traslado en lancha ida y vuelta, almuerzo playero + bebida, alojamiento en Hotel Mario con piscina, habitaciones con aire y baño privado, cena",
+        "Día 2: traslado en lancha ida y vuelta, desayuno + bebida, almuerzo + bebida",
+        "5 destinos a visitar: Cayo Sombrero y paseo a los Juanes, Tours (Cayo Pescadores, Punta Varadero y Cayo Muerto)"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Salida el viernes en la noche y retorno el domingo desde Chichiriviche 4:00 p. m.",
+        "Promo en pareja REF 300 (USD 150 c/u); tarifa cargada por persona USD 200. Para pareja aplicar un descuento de USD 50 por persona.",
+        "El paquete debe cancelarse en su totalidad 3 días antes del viaje."
+      ]
+    },
+    {
+      "clave": "choroni-basico",
+      "nombre": "Aventura Choroní 2 días / 1 noche · Plan Básico",
+      "tipo": "fin_de_semana",
+      "familia": "Choroní",
+      "politica": "multi_dia",
+      "hora_salida": "19:00",
+      "reserva_usd": 50,
+      "cupos": 24,
+      "descripcion": "Fin de semana en Choroní: hospedaje en posada con piscina, transporte, lancha y recorrido por Tinikijima, Cepe, Puerto Escondido, Playa Grande, mirador del Cristo Rey, pueblo de Choroní, murales y ruta del cacao.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "19:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "19:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "19:00"
+        }
+      ],
+      "precios": {
+        "adulto": 115,
+        "nino": 115,
+        "tercera_edad": 115,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-13",
+        "2026-11-20",
+        "2026-11-27",
+        "2026-12-04",
+        "2026-12-11",
+        "2026-12-18",
+        "2026-12-25",
+        "2027-01-01",
+        "2027-01-08",
+        "2027-01-15"
+      ],
+      "incluye": [
+        "Transporte ida y vuelta",
+        "Traslado en lancha",
+        "Hidratación y hielo (limitado)",
+        "Hospedaje en posada con piscina",
+        "Guía certificado",
+        "Fotografía grupal",
+        "Obsequios"
+      ],
+      "no_incluye": [
+        "Comidas (plan con comidas REF 160 en tour aparte)",
+        "Consumos personales"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Lugares a visitar",
+          "detalle": "Tinikijima, Cepe, Puerto Escondido, Playa Grande, mirador del Cristo Rey, pueblo de Choroní, murales, ruta del cacao, malecón y río."
+        }
+      ],
+      "notas": [
+        "El chat anuncia «todos los fines de semana» sin fechas concretas: se generaron las salidas de viernes desde el 13/11/2026 hasta el 15/01/2027. Confirmar el calendario antes de publicar.",
+        "Salida viernes 7:00 p. m.",
+        "Métodos de pago: efectivo USD, Zelle, Binance y pago móvil en Bs."
+      ]
+    },
+    {
+      "clave": "choroni-con-comidas",
+      "nombre": "Aventura Choroní 2 días / 1 noche · Plan con comidas",
+      "tipo": "fin_de_semana",
+      "familia": "Choroní",
+      "politica": "multi_dia",
+      "hora_salida": "19:00",
+      "reserva_usd": 50,
+      "cupos": 24,
+      "descripcion": "Mismo recorrido de Choroní que el plan básico, con las comidas incluidas en el precio.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "19:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "19:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "19:00"
+        }
+      ],
+      "precios": {
+        "adulto": 160,
+        "nino": 160,
+        "tercera_edad": 160,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-13",
+        "2026-11-20",
+        "2026-11-27",
+        "2026-12-04",
+        "2026-12-11",
+        "2026-12-18",
+        "2026-12-25",
+        "2027-01-01",
+        "2027-01-08",
+        "2027-01-15"
+      ],
+      "incluye": [
+        "Todo lo del plan básico",
+        "Comidas incluidas (desayunos, almuerzos y cenas del itinerario)"
+      ],
+      "no_incluye": [
+        "Consumos personales"
+      ],
+      "notas": [
+        "El chat anuncia «todos los fines de semana» sin fechas concretas: se generaron las salidas de viernes desde el 13/11/2026 hasta el 15/01/2027. Confirmar el calendario antes de publicar.",
+        "Salida viernes 7:00 p. m."
+      ]
+    },
+    {
+      "clave": "posada-villa-paraiso-op1",
+      "nombre": "Posada Villa Paraíso · Mochima Opción 1 (Playa Colorada, Isla Arapo y Isla de Plata)",
+      "tipo": "fin_de_semana",
+      "familia": "Mochima",
+      "politica": "multi_dia",
+      "hora_salida": "22:00",
+      "reserva_usd": 75,
+      "cupos": 24,
+      "descripcion": "Fin de semana en la Posada Villa Paraíso con todas las comidas, paseos en lancha por Playa Colorada, Isla Arapo, ruta de los delfines, islote Gato y el Ratón, Playa Piscina e Isla de Plata.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "23:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "23:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 160,
+        "nino": 160,
+        "tercera_edad": 160,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-13"
+      ],
+      "incluye": [
+        "Traslado ejecutivo",
+        "Todas las comidas: 2 desayunos (empanadas), 2 almuerzos (pescado frito o pollo frito) y 1 cena (perros calientes u hamburguesas)",
+        "Snack, brindis y vaso personal playero",
+        "Traslado en lancha a los paseos",
+        "Alojamiento en Posada Villa Paraíso con piscina, habitaciones privadas (algunas con vista al mar) y baño interno",
+        "Guía turístico, hidratación y atención personalizada"
+      ],
+      "no_incluye": [
+        "Consumos personales",
+        "Toldos"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Lugares a visitar",
+          "detalle": "Playa Colorada, paseo a Isla Arapo, ruta de los delfines, islote Gato y el Ratón, Playa Piscina e Isla de Plata."
+        },
+        {
+          "titulo": "Horarios",
+          "detalle": "Salida viernes en la noche (Caracas 10:00 p. m., Guatire y Guarenas 11:00 p. m.), parada en el Guapo o el Guapetón, retorno el domingo 4:00 p. m."
+        }
+      ],
+      "notas": [
+        "Costo del paquete por pareja REF 320 (USD 160 por persona).",
+        "Si viaja solo y desea habitación propia debe cancelar REF 220 (reportar al reservar).",
+        "El paquete debe estar cancelado en su totalidad 3 días antes del viaje."
+      ]
+    },
+    {
+      "clave": "posada-villa-paraiso-op2",
+      "nombre": "Posada Villa Paraíso · Mochima Opción 2 (Aguas de Moisés y Playa Manare)",
+      "tipo": "fin_de_semana",
+      "familia": "Mochima",
+      "politica": "multi_dia",
+      "hora_salida": "22:00",
+      "reserva_usd": 75,
+      "cupos": 24,
+      "descripcion": "Fin de semana en la Posada Villa Paraíso con paseos a Aguas de Moisés y Playa Manare.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "23:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "23:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 175,
+        "nino": 175,
+        "tercera_edad": 175,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-27"
+      ],
+      "incluye": [
+        "Traslado ejecutivo",
+        "Todas las comidas: 2 desayunos (empanadas), 2 almuerzos (pescado frito o pollo frito) y 1 cena (perros calientes u hamburguesas)",
+        "Snack, brindis y vaso personal playero",
+        "Traslado en lancha a los paseos",
+        "Alojamiento en Posada Villa Paraíso con piscina, habitaciones privadas y baño interno",
+        "Guía turístico, hidratación y atención personalizada"
+      ],
+      "no_incluye": [
+        "Consumos personales",
+        "Toldos"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Lugares a visitar",
+          "detalle": "Aguas de Moisés y Playa Manare."
+        }
+      ],
+      "notas": [
+        "Costo del paquete por pareja REF 350 (USD 175 por persona).",
+        "Si viaja solo y desea habitación propia debe cancelar REF 220 (reportar al reservar).",
+        "El paquete debe estar cancelado en su totalidad 3 días antes del viaje."
+      ]
+    },
+    {
+      "clave": "posada-villa-paraiso-op3",
+      "nombre": "Posada Villa Paraíso · Mochima Opción 3 (Isla de Plata y Playa Manare)",
+      "tipo": "fin_de_semana",
+      "familia": "Mochima",
+      "politica": "multi_dia",
+      "hora_salida": "22:00",
+      "reserva_usd": 75,
+      "cupos": 24,
+      "descripcion": "Fin de semana en la Posada Villa Paraíso con paseos a Isla de Plata y Playa Manare.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "23:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "23:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 175,
+        "nino": 175,
+        "tercera_edad": 175,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-12-04",
+        "2026-12-11"
+      ],
+      "incluye": [
+        "Traslado ejecutivo",
+        "Todas las comidas: 2 desayunos (empanadas), 2 almuerzos (pescado frito o pollo frito) y 1 cena (perros calientes u hamburguesas)",
+        "Snack, brindis y vaso personal playero",
+        "Traslado en lancha a los paseos",
+        "Alojamiento en Posada Villa Paraíso con piscina, habitaciones privadas y baño interno",
+        "Guía turístico, hidratación y atención personalizada"
+      ],
+      "no_incluye": [
+        "Consumos personales",
+        "Toldos"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Lugares a visitar",
+          "detalle": "Isla de Plata y Playa Manare."
+        }
+      ],
+      "notas": [
+        "Costo del paquete por pareja REF 350 (USD 175 por persona).",
+        "Dos rangos de fechas: 05 al 06 y 12 al 13 de diciembre.",
+        "Si viaja solo y desea habitación propia debe cancelar REF 220 (reportar al reservar)."
+      ]
+    },
+    {
+      "clave": "posada-villa-paraiso-op4",
+      "nombre": "Posada Villa Paraíso · Mochima Opción 4 (Playa Blanca e Isla el Faro)",
+      "tipo": "fin_de_semana",
+      "familia": "Mochima",
+      "politica": "multi_dia",
+      "hora_salida": "22:00",
+      "reserva_usd": 75,
+      "cupos": 24,
+      "descripcion": "Fin de semana en la Posada Villa Paraíso con paseos a Playa Blanca e Isla el Faro.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "23:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "23:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 175,
+        "nino": 175,
+        "tercera_edad": 175,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-12-18"
+      ],
+      "incluye": [
+        "Traslado ejecutivo",
+        "Todas las comidas: 2 desayunos (empanadas), 2 almuerzos (pescado frito o pollo frito) y 1 cena (perros calientes u hamburguesas)",
+        "Snack, brindis y vaso personal playero",
+        "Traslado en lancha a los paseos",
+        "Alojamiento en Posada Villa Paraíso con piscina, habitaciones privadas y baño interno",
+        "Guía turístico, hidratación y atención personalizada"
+      ],
+      "no_incluye": [
+        "Consumos personales",
+        "Toldos"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Lugares a visitar",
+          "detalle": "Playa Blanca e Isla el Faro."
+        }
+      ],
+      "notas": [
+        "Costo del paquete por pareja REF 350 (USD 175 por persona).",
+        "Si viaja solo y desea habitación propia debe cancelar REF 220 (reportar al reservar)."
+      ]
+    },
+    {
+      "clave": "sucre-mochima-3d2n",
+      "nombre": "Sucre · Mochima 3 días / 2 noches",
+      "tipo": "multi_dia",
+      "familia": "Mochima",
+      "politica": "multi_dia",
+      "hora_salida": "22:00",
+      "reserva_usd": 100,
+      "cupos": 24,
+      "descripcion": "Tres días en Mochima con hospedaje en la Posada Villa Paraíso: Aguas de Moisés, Isla de Plata, Playa Manare, Isla Piscina y ruta de los delfines.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "22:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "22:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "22:00"
+        }
+      ],
+      "precios": {
+        "adulto": 225,
+        "nino": 225,
+        "tercera_edad": 225,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-27"
+      ],
+      "incluye": [
+        "Traslado en cómodas unidades con aire acondicionado",
+        "Hospedaje en la Posada Villa Paraíso con piscina, aire acondicionado y baño privado",
+        "Traslado en lancha",
+        "Brindis, suministro de hielo y meriendas",
+        "Atención personalizada",
+        "3 desayunos, 3 almuerzos y 2 cenas"
+      ],
+      "no_incluye": [
+        "Consumos personales",
+        "Toldos"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Lugares a visitar",
+          "detalle": "Aguas de Moisés, Isla de Plata, Playa Manare, paseo por Isla Piscina y ruta de los delfines."
+        },
+        {
+          "titulo": "Horarios",
+          "detalle": "Salida el viernes 27/11/2026 a las 10:00 p. m.; retorno el lunes a las 3:00 p. m."
+        }
+      ],
+      "notas": [
+        "Precio por pareja REF 450 (USD 225 por persona).",
+        "Promoción: 4 personas en la misma habitación REF 200 por persona (aplicar descuento de USD 25 por persona).",
+        "El chat decía «saliendo el viernes 09/10/2026», errata por la fecha del viaje 28-30/11/2026: la salida real es el viernes 27/11/2026.",
+        "El paquete debe estar cancelado 5 días antes de la salida si el pago es en Bs; al abordar sólo se recibe divisas efectivo."
+      ]
+    },
+    {
+      "clave": "merida-2n3d-basico",
+      "nombre": "Tour Mérida 2 noches / 3 días · Plan Básico",
+      "tipo": "multi_dia",
+      "familia": "Mérida",
+      "politica": "multi_dia",
+      "hora_salida": "18:30",
+      "reserva_usd": 100,
+      "cupos": 24,
+      "descripcion": "Tres días en Mérida con hotel en el centro, entrada al teleférico, zoológico y Casa Encantada de Juan, transporte con Wi-Fi y recreación.",
+      "puntos": [
+        {
+          "clave": "caracas_terminal",
+          "hora": "18:30"
+        },
+        {
+          "clave": "caracas_plaza_venezuela",
+          "hora": "18:30"
+        }
+      ],
+      "precios": {
+        "adulto": 160,
+        "nino": 160,
+        "tercera_edad": 160,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-12",
+        "2026-12-17"
+      ],
+      "incluye": [
+        "Transporte ida y vuelta con aire acondicionado y Wi-Fi",
+        "Estadía en excelente hotel con habitaciones privadas, ubicado en el centro",
+        "Entrada al teleférico",
+        "Entrada al zoológico",
+        "Entrada a la Casa Encantada de Juan",
+        "Snacks y meriendas",
+        "Hidratación continua",
+        "Refrigerio",
+        "Brazalete de identificación",
+        "Paseos internos",
+        "Obsequio sorpresa",
+        "Recreación",
+        "Guía personalizado"
+      ],
+      "no_incluye": [
+        "Casa Ángel del Sol (REF 10)",
+        "Mundo Safari (REF 10)",
+        "Comidas (disponibles en el plan full)"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Destinos a visitar",
+          "detalle": "Pico El Águila, Refugio del Cóndor, Loca Luz Caraballo, Mercado, Catedral, Heladería 1000 Sabores, Teleférico, Zoológico Chorros de Milla, Bosque de Pinos, Casa del Colibrí, Perro Nevado, Juan el Molinero, Capilla de Piedra, Laguna Mucubají, Vuelta de Lola y Mundo Safari."
+        }
+      ],
+      "notas": [
+        "Salida el jueves en la noche: Caracas 6:30 p. m., Maracay 8:30 p. m., Valencia 9:30 p. m. Retorno el domingo 6:30 p. m.",
+        "El chat anunciaba también «septiembre todos los fines de semana», sin fechas concretas y ya transcurridas: se omitió.",
+        "Niños a partir de 5 años pagan paquete completo; entre 3 y 4 años pagan 50 % del plan básico (aplicar ajuste).",
+        "El paquete debe estar cancelado 5 días antes de la salida si el pago es en Bs; al abordar sólo se recibe divisas efectivo."
+      ]
+    },
+    {
+      "clave": "merida-2n3d-full",
+      "nombre": "Tour Mérida 2 noches / 3 días · Plan Full con comidas",
+      "tipo": "multi_dia",
+      "familia": "Mérida",
+      "politica": "multi_dia",
+      "hora_salida": "18:30",
+      "reserva_usd": 100,
+      "cupos": 24,
+      "descripcion": "Mismo recorrido de Mérida del plan básico sumando 3 desayunos, 3 almuerzos y 2 cenas con bebida.",
+      "puntos": [
+        {
+          "clave": "caracas_terminal",
+          "hora": "18:30"
+        },
+        {
+          "clave": "caracas_plaza_venezuela",
+          "hora": "18:30"
+        }
+      ],
+      "precios": {
+        "adulto": 230,
+        "nino": 230,
+        "tercera_edad": 230,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-12",
+        "2026-12-17"
+      ],
+      "incluye": [
+        "Todo lo del plan básico",
+        "3 desayunos con bebida",
+        "3 almuerzos con bebida",
+        "2 cenas con bebida"
+      ],
+      "no_incluye": [
+        "Casa Ángel del Sol (REF 10)",
+        "Mundo Safari (REF 10)"
+      ],
+      "notas": [
+        "Precio por pareja REF 440 (USD 220 por persona): aplicar descuento de USD 10 por persona en reservas en pareja.",
+        "Salida el jueves en la noche: Caracas 6:30 p. m., Maracay 8:30 p. m., Valencia 9:30 p. m.",
+        "Persona sola debe cancelar REF 40 adicionales por habitación privada de ocupación doble (aplicar recargo).",
+        "Niños a partir de 5 años pagan paquete completo; entre 3 y 4 años pagan 50 % del plan básico (aplicar ajuste).",
+        "Plan con alimentos para niños REF 55 adicional al paquete básico.",
+        "Sólo los niños a partir de 5 años pueden ingresar hasta la 5.ª estación del teleférico."
+      ]
+    },
+    {
+      "clave": "paria-puipuy",
+      "nombre": "Sucre · Península de Paria, Cabañas de PuiPuy 3 días / 2 noches",
+      "tipo": "multi_dia",
+      "familia": "Paria",
+      "politica": "multi_dia",
+      "hora_salida": "19:00",
+      "reserva_usd": 75,
+      "cupos": 24,
+      "descripcion": "Tres días en las cabañas de PuiPuy sobre la playa: Aguas de Moisés, Playa Medina, Playa PuiPuy, Playa Colorada, Isla Piscina y ruta de los delfines.",
+      "puntos": [
+        {
+          "clave": "caracas_terminal",
+          "hora": "19:00"
+        },
+        {
+          "clave": "guatire_castillejo",
+          "hora": "20:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "20:00"
+        }
+      ],
+      "precios": {
+        "adulto": 247.5,
+        "nino": 247.5,
+        "tercera_edad": 247.5,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-12-10"
+      ],
+      "incluye": [
+        "Traslado ejecutivo",
+        "Todas las comidas: 3 desayunos (empanadas), 3 almuerzos (pescado frito o pollo frito) y 2 cenas (perros calientes u hamburguesas)",
+        "Snack, brindis y vaso personal playero",
+        "Traslado en lancha a los paseos",
+        "Alojamiento en cabañas privadas en playa PuiPuy con baño interno",
+        "Guía turístico, hidratación y atención personalizada"
+      ],
+      "no_incluye": [
+        "Consumos personales",
+        "Toldos"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Lugares a visitar",
+          "detalle": "Aguas de Moisés, Playa Medina y Playa PuiPuy, Playa Colorada con paseo a Isla Piscina y ruta de los delfines."
+        },
+        {
+          "titulo": "Horarios",
+          "detalle": "Salida el jueves 10 de diciembre (Caracas 7:00 p. m., Guatire y Guarenas 8:00 p. m.), parada en Caucagua o el Guapetón, retorno el domingo 4:00 p. m."
+        }
+      ],
+      "notas": [
+        "Costo del paquete por pareja REF 495 (USD 247.50 por persona).",
+        "Promoción grupal: 4 personas en la misma cabaña REF 235 por persona; 5 personas REF 225 por persona (aplicar descuento desde la reserva).",
+        "Niños a partir de 5 años cancelan su cupo completo."
+      ]
+    },
+    {
+      "clave": "merida-inicio-ano",
+      "nombre": "Especial Mérida Inicio de Año · 2 noches / 3 días",
+      "tipo": "multi_dia",
+      "familia": "Mérida",
+      "politica": "multi_dia",
+      "hora_salida": "17:30",
+      "reserva_usd": 50,
+      "cupos": 24,
+      "descripcion": "Viaje de inicio de año a Mérida con hotel céntrico, todas las comidas, teleférico hasta la última estación, santuario de colibríes y más de 18 sitios por visitar.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "17:30"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "17:30"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "18:00"
+        }
+      ],
+      "precios": {
+        "adulto": 245,
+        "nino": 245,
+        "tercera_edad": 245,
+        "infante": 0
+      },
+      "fechas": [
+        "2027-01-03",
+        "2027-01-07"
+      ],
+      "incluye": [
+        "Transporte ida y vuelta con aire acondicionado y Wi-Fi",
+        "Estadía en excelente hotel en el centro de la ciudad con habitaciones privadas",
+        "Todas las comidas",
+        "Ruta interna",
+        "Entrada al teleférico hasta la última estación",
+        "Entrada a la Casa Encantada de Juan",
+        "Entrada al Parque Zoológico Chorros de Milla",
+        "Entrada al santuario de colibríes",
+        "Snacks diarios",
+        "Hidratación diaria",
+        "Brazalete de identificación",
+        "Guía personalizado",
+        "Botiquín de primeros auxilios",
+        "Obsequios especiales"
+      ],
+      "no_incluye": [
+        "Mundo Safari (EUR 10 por persona, se cancela al ingresar a la unidad)",
+        "Parque temático opcional (USD 25 la entrada)"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Destinos a visitar",
+          "detalle": "Pico El Águila, Refugio del Cóndor, Loca Luz Caraballo, Mercado, Catedral, Heladería 1000 Sabores, Teleférico, Zoológico Chorros de Milla, Bosque de Pinos, Casa del Colibrí, Perro Nevado, Juan el Molinero, Capilla de Piedra, Laguna Mucubají, Vuelta de Lola y Mundo Safari."
+        },
+        {
+          "titulo": "Horarios",
+          "detalle": "Guatire y Guarenas 5:30 p. m., Caracas 6:00 p. m., Maracay 8:30 p. m., Valencia 9:30 p. m. Retorno el 3.er día a las 7:00 p. m. para llegar a Caracas 5:00 a. m."
+        }
+      ],
+      "notas": [
+        "Reserva de 50 por persona: el chat la indica en euros, se carga en USD (moneda del sistema).",
+        "Grupos de 5 o más personas REF 240 (aplicar descuento de USD 5 por persona).",
+        "Debe entregar USD 20 en divisas para garantizar la entrada al teleférico (ya incluidos en el monto).",
+        "Persona sola debe cancelar USD 50 adicionales por habitación privada (aplicar recargo).",
+        "Niños a partir de 5 años pagan paquete completo; sólo desde 5 años suben a la última estación del teleférico.",
+        "No se hacen devoluciones; la reserva es compromiso de asistencia."
+      ]
+    },
+    {
+      "clave": "merida-4d3n",
+      "nombre": "Mérida por 4 días y 3 noches",
+      "tipo": "multi_dia",
+      "familia": "Mérida",
+      "politica": "multi_dia",
+      "hora_salida": "18:00",
+      "reserva_usd": 100,
+      "cupos": 24,
+      "descripcion": "Cuatro días en Mérida con hotel céntrico, todas las comidas, teleférico Mukumbarí con todas las estaciones y más de 18 sitios por visitar.",
+      "puntos": [
+        {
+          "clave": "guatire_castillejo",
+          "hora": "18:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "18:00"
+        },
+        {
+          "clave": "caracas_terminal",
+          "hora": "18:00"
+        }
+      ],
+      "precios": {
+        "adulto": 300,
+        "nino": 300,
+        "tercera_edad": 300,
+        "infante": 0
+      },
+      "fechas": [
+        "2027-01-06"
+      ],
+      "incluye": [
+        "Transporte terrestre Caracas - Mérida y Mérida - Caracas",
+        "Transporte dentro de la ciudad a todos los lugares a visitar",
+        "Brazalete identificativo",
+        "Hospedaje 3 noches en habitación matrimonial, triple o cuádruple",
+        "Entrada pagada a los lugares (excepto parque temático, opcional)",
+        "4 desayunos típicos de la región + bebidas",
+        "4 almuerzos ejecutivos + bebidas",
+        "3 cenas tradicionales + bebidas",
+        "Servicio de hidratación",
+        "Apoyo fotográfico y material audiovisual",
+        "Torta de cumpleañeros para compartir con el grupo",
+        "Sorpresas, guía turístico y atención personalizada"
+      ],
+      "no_incluye": [
+        "Parque temático opcional (USD 25 la entrada)",
+        "Entradas no listadas"
+      ],
+      "itinerario": [
+        {
+          "titulo": "Lugares a visitar",
+          "detalle": "Pico El Águila, Laguna Mucubají, Loca Luz Caraballo, Perro Nevado, Colibríes, Bosque de Pinos, Redoma Vuelta la Lola, Zoológico Chorros de Milla, Aguas Termales La Musuí, Teleférico Mukumbarí, Plaza las Heroínas, Heladería Mil Sabores, Catedral, Plaza Bolívar, Mercado Principal, Casa Encantada, Molinero de Juan, Capilla de Piedra y Laguna La Victoria."
+        }
+      ],
+      "notas": [
+        "Transporte ejecutivo con asientos reclinables, Wi-Fi Starlink, zona de carga y chofer certificado.",
+        "Habitaciones privadas con baño y Wi-Fi (matrimoniales, triples y cuádruples), con sábanas, toallas, calentador de agua, restaurante, ascensor y escaleras.",
+        "Hasta los 3 años van gratis en las piernas de sus representantes (no incluyen servicios); a partir de los 4 años cancelan su paquete completo.",
+        "El pago de la reservación es el compromiso de asistencia: no hay devolución ni cambio de fecha.",
+        "Si el viaje se reprograma por condiciones climáticas, manifestaciones o pronunciamientos del Ejecutivo Nacional, no se hace devolución.",
+        "El chat no indica hora de salida: se usa 6:00 p. m. como horario de referencia."
+      ]
+    },
+    {
+      "clave": "sucre-aguas-de-moises",
+      "nombre": "Sucre · Aguas de Moisés",
+      "tipo": "full_day",
+      "familia": "Sucre",
+      "politica": "full_day",
+      "hora_salida": "19:00",
+      "reserva_usd": 20,
+      "cupos": 40,
+      "descripcion": "Full day a las Aguas de Moisés en Sucre con entrada incluida al destino.",
+      "puntos": [
+        {
+          "clave": "caracas_terminal",
+          "hora": "19:00"
+        },
+        {
+          "clave": "guarenas_farmatodo",
+          "hora": "20:00"
+        },
+        {
+          "clave": "guatire_castillejo",
+          "hora": "20:00"
+        }
+      ],
+      "precios": {
+        "adulto": 70,
+        "nino": 70,
+        "tercera_edad": 70,
+        "infante": 0
+      },
+      "fechas": [
+        "2026-11-27"
+      ],
+      "incluye": [
+        "Transporte terrestre con aire acondicionado",
+        "Entrada a las Aguas de Moisés",
+        "Desayuno + bebida",
+        "Almuerzo playero (pescado o pollo con tostones y ensalada) + bebida",
+        "Recuerdos fotográficos",
+        "Merienda",
+        "Brindis grupal",
+        "Vaso personal playero",
+        "Hidratación (papelón con limón, jugo y agua) + hielo limitado",
+        "Atención personalizada",
+        "Actividades recreativas, rifas y más"
+      ],
+      "no_incluye": [
+        "Toldos ni sillas",
+        "Consumos personales"
+      ],
+      "notas": [
+        "Salida la noche anterior: Caracas 7:00 p. m., Guarenas y Guatire 8:00 p. m.",
+        "El chat anuncia el viaje para el sabado 28/11/2026; la salida del bus es la noche anterior (viernes 27/11/2026)."
+      ]
+    }
+  ],
+  "anomalias": [
+    {
+      "tema": "Dia de la semana",
+      "detalle": "Colonia Tovar: el chat dice 'DOMINGO 28 DE NOVIEMBRE', pero el 28/11/2026 es sabado (el mismo chat escribe 'SABADO 28 DE NOVIEMBRE' para Aguas de Moises y Posada Villa Paraiso). Se cargo el 28/11/2026 tal como marca el calendario.",
+      "impacto": "fecha de salida de Colonia Tovar"
+    },
+    {
+      "tema": "Fecha transcurrida",
+      "detalle": "Cayo Azul: el chat anuncia 'SABADO 31 DE OCTUBRE', fecha ya pasada. Se omite; quedan el 12/12/2026 y el 06/01/2027.",
+      "impacto": "1 fecha omitida"
+    },
+    {
+      "tema": "Errata de fecha",
+      "detalle": "Sucre Mochima 3d/2n: dice 'Saliendo el viernes 09/10/2026' pero el viaje es del 28 al 30/11/2026. La salida real es el viernes 27/11/2026.",
+      "impacto": "fecha de salida corregida"
+    },
+    {
+      "tema": "Sin fechas concretas",
+      "detalle": "Tour Merida 2n/3d: anuncia 'Septiembre todos los fines de semana', sin fechas y ya transcurrido. Se omite esa temporada y se cargan las de noviembre y diciembre.",
+      "impacto": "sin fechas de septiembre"
+    },
+    {
+      "tema": "Fechas generadas",
+      "detalle": "Aventura Choroni 2d/1n: el chat solo dice 'todos los fines de semana'. Se generaron las 10 salidas de viernes del 13/11/2026 al 15/01/2027. Confirmar el calendario antes de vender.",
+      "impacto": "10 fechas por tour (2 tours)"
+    },
+    {
+      "tema": "Moneda",
+      "detalle": "Merida Inicio de Año: la reserva se indica en '50 euros' y el sistema solo maneja USD. Se cargo 50 USD.",
+      "impacto": "reserva_usd"
+    },
+    {
+      "tema": "Precio por pareja",
+      "detalle": "Ruta del Ron (1 persona 70 / 2 personas 120), Hotel Mario (200 por persona, promo pareja 300), Paria (495 por pareja), Posada Villa Paraiso (320-350 por pareja) y Sucre Mochima (450 por pareja) se cargaron a precio unitario por persona. La diferencia de pareja/grupo se aplica como ajuste manual desde la reserva.",
+      "impacto": "precios adulto/nino/tercera_edad"
+    },
+    {
+      "tema": "Persona sola",
+      "detalle": "Posada Villa Paraiso: REF 220 por habitacion propia (fuera del precio por pareja) y Merida 2n/3d: REF 40 de recargo, Merida Inicio de Año: USD 50. Quedan como ajuste manual con motivo.",
+      "impacto": "recargos a aplicar en la reserva"
+    },
+    {
+      "tema": "Horario no indicado",
+      "detalle": "Playa Caribe (Chuspa) y Merida por 4 dias: el chat no da hora de salida. Se uso 6:00 a. m. y 6:00 p. m. respectivamente como referencia.",
+      "impacto": "hora_salida de 2 tours"
+    },
+    {
+      "tema": "Cupos",
+      "detalle": "El chat no publica cupos por salida. Se cargo 40 en full day y 24 en hospedaje/multi-dia. Si un plan y otro salen en el mismo bus, hay que ajustar el reparto.",
+      "impacto": "cupos de las 102 fechas"
+    },
+    {
+      "tema": "Precio por edad",
+      "detalle": "El chat no define precios por edad: nino y tercera_edad quedan al precio adulto y el infante (0-2) en 0.00. Los casos especiales (3-4 anos al 50% en Merida, ninos de 3 anos gratis en Merida 4d/3n) se resuelven con ajuste manual.",
+      "impacto": "matriz de tarifas"
+    },
+    {
+      "tema": "Fecha de la salida",
+      "detalle": "En los 18 tours con 'salida la noche anterior', fecha_salida guarda el dia en que sale el bus; el dia de actividad del viaje queda anotado en las notas del tour.",
+      "impacto": "52 fechas desplazadas un dia"
+    }
+  ]
+}
