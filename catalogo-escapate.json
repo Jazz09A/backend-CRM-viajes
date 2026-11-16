@@ -5,7 +5,7 @@
     "'REF n' se interpreta como precio en USD por persona (el sistema sólo maneja USD).",
     "Los precios 'por pareja' se convierten a precio unitario por persona; el descuento por pareja o por grupo se aplica como ajuste manual desde la reserva.",
     "Los planes con inclusiones distintas (full/básico, con/sin comidas) se cargan como tours separados (RF-1.3: duplicar tour para variantes).",
-    "Categorías de tarifa: nino y tercera_edad toman el precio adulto porque el chat no los diferencia; infante (0-2) queda en 0.00.",
+    "Categorías de tarifa: nino y tercera_edad toman el precio adulto porque el chat no los diferencia; infante (0-4) queda en 0.00.",
     "Fecha de salida de los viajes con hospedaje = el día previo a la noche de salida indicada en el chat.",
     "Los cupos no vienen en el chat: 40 por salida en full day, 24 en multi-día, salvo indicación en el tour.",
     "En los tours con «salida la noche anterior», fecha_salida guarda el día en que sale el bus (la noche previa al viaje); el día de actividad queda anotado en las notas del tour."
@@ -2426,7 +2426,7 @@
     },
     {
       "tema": "Precio por edad",
-      "detalle": "El chat no define precios por edad: nino y tercera_edad quedan al precio adulto y el infante (0-2) en 0.00. Los casos especiales (3-4 anos al 50% en Merida, ninos de 3 anos gratis en Merida 4d/3n) se resuelven con ajuste manual.",
+      "detalle": "El chat no define precios por edad: nino y tercera_edad quedan al precio adulto y el infante (0-4) en 0.00. Los casos especiales (3-4 anos al 50% en Merida, ninos de 3 anos gratis en Merida 4d/3n) se resuelven con ajuste manual.",
       "impacto": "matriz de tarifas"
     },
     {

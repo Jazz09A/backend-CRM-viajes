@@ -76,7 +76,7 @@ Efectos colaterales del importador:
    alternativa automática sería un eje de precio nuevo en el motor, que es la
    fase 2 pendiente).
 4. **Categorías por edad.** El chat no da precios por edad: niño y tercera
-   edad quedan al precio del adulto y el infante (0-2) en 0.00. Los casos
+   edad quedan al precio del adulto y el infante (0-4) en 0.00. Los casos
    especiales (3-4 años al 50 % en Mérida, niños de 3 años gratis en Mérida
    4d/3n) se resuelven con ajuste manual.
 5. **Cupos.** El chat no los publica: 40 por salida en full day y 24 en
