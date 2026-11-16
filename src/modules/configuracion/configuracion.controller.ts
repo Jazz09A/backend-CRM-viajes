@@ -31,6 +31,14 @@ class PuntoSalidaBodyDto implements PuntoSalidaDto {
   referencia?: string;
 
   @IsOptional()
+  @IsString()
+  ciudad?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  seleccionable?: boolean;
+
+  @IsOptional()
   @IsNumber()
   orden?: number;
 

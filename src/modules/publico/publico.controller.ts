@@ -63,6 +63,16 @@ export class PublicoController {
     return this.service.guardarTitular(token, datos, typeof version === 'number' ? version : undefined);
   }
 
+  /** Autocompletado del titular: datos de una reserva anterior por documento. */
+  @Post('reserva/datos-por-documento')
+  @UseGuards(EnlaceAuthGuard)
+  async datosPorDocumento(@Headers('x-enlace-token') token: string, @Body() body: Record<string, unknown>) {
+    return this.service.datosPorDocumento(token, {
+      tipo_doc: typeof body['tipo_doc'] === 'string' ? body['tipo_doc'] : 'V',
+      documento: typeof body['documento'] === 'string' ? body['documento'] : '',
+    });
+  }
+
   @Put('reserva/acompanantes')
   @UseGuards(EnlaceAuthGuard)
   async guardarAcompanantes(@Headers('x-enlace-token') token: string, @Body() body: Record<string, unknown>) {

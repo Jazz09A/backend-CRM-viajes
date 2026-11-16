@@ -61,6 +61,12 @@ interface CatalogoPunto {
   ciudad: string;
   nombre: string;
   referencia: string;
+  /**
+   * `false` = sólo referencia en el formulario (no lo elige el cliente).
+   * Los puntos de Caracas se confirman después por el grupo de viaje /
+   * WhatsApp, por lo que viajan con `seleccionable: false`.
+   */
+  seleccionable?: boolean;
 }
 
 interface CatalogoTour {
@@ -103,9 +109,11 @@ const TOURS_DEMO = ['Full Day Los Roques', 'Fin de Semana Mérida', 'Colonia Tov
 const CATEGORIAS = ['adulto', 'nino', 'tercera_edad', 'infante'] as const;
 const RANGOS: Record<(typeof CATEGORIAS)[number], { min: number; max: number }> = {
   adulto: { min: 18, max: 120 },
-  nino: { min: 3, max: 11 },
+  nino: { min: 5, max: 11 },
   tercera_edad: { min: 61, max: 120 },
-  infante: { min: 0, max: 2 },
+  // Política de la agencia: hasta 4 años viaja gratis, en piernas de su
+  // representante (sin cupo y sin costo).
+  infante: { min: 0, max: 4 },
 };
 
 // ---------------------------------------------------------------------------
@@ -254,14 +262,19 @@ function definicionFormulario(tour: CatalogoTour, puntos: CatalogoPunto[]) {
 
   campos.push({
     id: 'punto_abordaje',
-    label: 'Punto de abordaje',
+    label: 'Punto de salida',
     ayuda:
-      'Selecciona el punto donde te recogemos. El punto definitivo de cada viaje se confirma en el grupo de viaje.',
+      'Elige dónde subes al bus. El punto de retorno es el mismo. En Caracas el punto no se elige aquí: se confirma en el grupo de viaje por WhatsApp. Cada pasajero puede salir de un punto distinto.',
     tipo: 'select',
     alcance: 'por_reserva',
+    // Salidas personalizadas: el titular puede fijar un punto para todos
+    // o responder por pasajero (los grupos salen de distintos lugares).
+    permite_por_pasajero: true,
     obligatorio: true,
     fuente: 'puntos_salida',
-    opciones: puntos.map((p) => ({ valor: p.clave, label: p.nombre })),
+    // Sólo los puntos `seleccionable` entran al selector; el resto los
+    // agrega el servidor en `puntos_referencia` (bloque informativo).
+    opciones: puntos.filter((p) => p.seleccionable !== false).map((p) => ({ valor: p.clave, label: p.nombre })),
   });
 
   const tieneComidas = tour.incluye.some((i) => /almuerzo|desayuno|merienda|cena/i.test(i));
@@ -397,18 +410,26 @@ async function procesar(ds: DataSource, catalogo: Catalogo, opciones: Opciones):
           nombre: p.nombre,
           hora,
           referencia: p.referencia,
+          ciudad: p.ciudad,
+          seleccionable: p.seleccionable !== false,
           orden: i,
           activo: true,
         });
         if (escribir) await repoPuntos.save(punto);
-        reporte.puntos.push(`${p.nombre} (creado, hora de referencia ${hora})`);
+        reporte.puntos.push(
+          `${p.nombre} (creado, hora de referencia ${hora}${p.seleccionable === false ? ', sólo referencia' : ''})`,
+        );
       } else {
         punto.nombre = p.nombre;
         punto.referencia = p.referencia;
+        punto.ciudad = p.ciudad;
+        punto.seleccionable = p.seleccionable !== false;
         punto.orden = i;
         punto.activo = true;
         if (escribir) await repoPuntos.save(punto);
-        reporte.puntos.push(`${p.nombre} (actualizado)`);
+        reporte.puntos.push(
+          `${p.nombre} (actualizado${p.seleccionable === false ? ', sólo referencia' : ''})`,
+        );
       }
     }
 
@@ -508,7 +529,40 @@ async function procesar(ds: DataSource, catalogo: Catalogo, opciones: Opciones):
         if (escribir) await repoFormularios.save(version);
         reporte.formularios.push(`${tour.nombre} (formulario v1 publicado)`);
       } else {
-        reporte.formularios.push(`${tour.nombre} (formulario ya publicado)`);
+        // Si la definición del punto de salida cambió (salidas personalizadas
+        // por pasajero, opciones de Caracas fuera del selector…), se publica
+        // una versión nueva: el snapshot anterior queda archivado.
+        const definicion = definicionFormulario(tour, catalogoPuntos);
+        const camposActuales = ((formPublicado.definicion ?? {}) as { campos?: Record<string, unknown>[] }).campos ?? [];
+        const campoActual = camposActuales.find((c) => c?.id === 'punto_abordaje');
+        const campoNuevo = (definicion.campos as Record<string, unknown>[]).find((c) => c?.id === 'punto_abordaje');
+        const proyectar = (c: Record<string, unknown> | undefined) =>
+          JSON.stringify(
+            c
+              ? { label: c.label, ayuda: c.ayuda, permite_por_pasajero: c.permite_por_pasajero, opciones: c.opciones }
+              : null,
+          );
+        if (proyectar(campoActual) !== proyectar(campoNuevo)) {
+          const todas = await repoFormularios.find({ where: { tour_id: tourId } });
+          const maxVersion = Math.max(0, ...todas.map((v) => v.version));
+          formPublicado.estado = 'archivada';
+          if (escribir) await repoFormularios.save(formPublicado);
+          const version = repoFormularios.create({
+            tour_id: tourId,
+            version: maxVersion + 1,
+            estado: 'publicada',
+            definicion,
+            hash: createHash('sha256').update(JSON.stringify(definicion)).digest('hex'),
+            publicada_en: new Date(),
+            publicada_por: autorId,
+          });
+          if (escribir) await repoFormularios.save(version);
+          reporte.formularios.push(
+            `${tour.nombre} (formulario v${maxVersion + 1} publicado: punto de salida actualizado)`,
+          );
+        } else {
+          reporte.formularios.push(`${tour.nombre} (formulario ya publicado)`);
+        }
       }
 
       // Activar el tour (exige política + formulario publicado).
@@ -544,7 +598,9 @@ async function procesar(ds: DataSource, catalogo: Catalogo, opciones: Opciones):
         reporte.fechas.push(`${tour.nombre} · ${fecha} ${nueva ? '(creada)' : '(ya existía)'}`);
 
         for (const categoria of CATEGORIAS) {
-          const precio = tour.precios[categoria].toFixed(2);
+          // Los menores de 5 años no pagan (viajan en piernas de su
+          // representante): la tarifa infante se fuerza a 0.
+          const precio = categoria === 'infante' ? '0.00' : tour.precios[categoria].toFixed(2);
           const existente = await repoTarifas.findOne({
             where: { fecha_tour_id: fechaId, categoria },
           });

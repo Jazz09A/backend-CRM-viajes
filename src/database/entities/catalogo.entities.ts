@@ -80,6 +80,18 @@ export class PuntoSalida extends ConTimestamps {
 
   @Column({ type: 'varchar', nullable: true }) referencia?: string | null;
 
+  /** Ciudad del punto (Guatire, Guarenas, Caracas…); agrupa la lista pública. */
+  @Column({ type: 'varchar', length: 80, nullable: true }) ciudad?: string | null;
+
+  /**
+   * ¿El cliente puede elegirlo en el formulario público?
+   *
+   * `false` = el punto se muestra sólo como referencia (los de Caracas se
+   * confirman después por el grupo de viaje / WhatsApp) y queda fuera del
+   * selector; el backend también rechaza guardarlo como respuesta.
+   */
+  @Column({ type: 'boolean', default: true }) seleccionable!: boolean;
+
   @Column({ type: 'int', default: 0 }) orden!: number;
 
   @Column({ type: 'boolean', default: true }) activo!: boolean;

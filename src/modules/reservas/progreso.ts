@@ -50,8 +50,7 @@ export function construirProgreso(r: Reserva): Progreso {
     paso_actual: pasoActual,
     pasos,
     siguiente_accion: siguienteAccion(r),
-    puede_editar: ['en_registro', 'pendiente_firma', 'pendiente_pago'].includes(r.estado) &&
-      !r.tiene_pago_por_validar,
+    puede_editar: ['en_registro', 'pendiente_firma', 'pendiente_pago'].includes(r.estado),
     expira_en: r.expira_en?.toISOString() ?? null,
     version: r.version,
     motivo_cierre: motivoCierre(r),

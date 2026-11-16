@@ -7,6 +7,7 @@ export type PropositoArchivo =
   | 'comprobante'
   | 'firma_cliente'
   | 'autorizacion_menor'
+  | 'documento_identidad'
   | 'voucher'
   | 'firma_empresa'
   | 'imagen_tour'

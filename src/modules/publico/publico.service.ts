@@ -288,13 +288,77 @@ export class PublicoService {
       campos = campos.filter((c) => !esCampoComida(c));
     }
     // Punto de salida: las opciones vienen del catálogo global en cada render.
-    return campos.map((c) => (esCampoPuntoSalida(c) ? { ...c, opciones: this.opcionesPuntos(ctx) } : c));
+    // Los `seleccionable` entran al selector y, si hay puntos de Caracas como
+    // referencia, se añade la pseudo-opción `caracas` (punto por confirmar);
+    // los puntos de referencia se envían aparte para sugerirse en la UI.
+    return campos.map((c) =>
+      esCampoPuntoSalida(c)
+        ? { ...c, opciones: this.opcionesPuntos(ctx), puntos_referencia: this.puntosReferencia(ctx) }
+        : c,
+    );
   }
 
   private opcionesPuntos(ctx: Contexto): CampoDef['opciones'] {
-    return ctx.puntos
-      .filter((p) => p.activo)
+    const opciones = ctx.puntos
+      .filter((p) => p.activo && p.seleccionable !== false)
       .map((p) => ({ valor: p.clave, label: `${p.nombre}, ${horaLegible(p.hora)}` }));
+    // Caracas sí es elegible como ciudad: la pseudo-opción guarda la decisión
+    // y el punto definitivo se confirma después por WhatsApp (los puntos reales
+    // de Caracas siguen saliendo en `puntos_referencia` como sugerencia).
+    const hayCaracas = ctx.puntos.some(
+      (p) => p.activo && p.seleccionable === false && (p.ciudad ?? '').toLowerCase().includes('caracas'),
+    );
+    if (hayCaracas) {
+      opciones.push({ valor: 'caracas', label: 'Caracas — punto por confirmar' });
+    }
+    return opciones;
+  }
+
+  /**
+   * Puntos activos que el cliente NO puede elegir, agrupados por ciudad.
+   * El formulario los muestra en un bloque informativo aparte (los de
+   * Caracas se confirman después por el grupo de viaje / WhatsApp).
+   */
+  private puntosReferencia(ctx: Contexto): NonNullable<CampoDef['puntos_referencia']> {
+    const grupos = new Map<string, { clave: string; nombre: string; hora: string; referencia: string | null }[]>();
+    for (const p of ctx.puntos) {
+      if (!p.activo || p.seleccionable !== false) continue;
+      const ciudad = (p.ciudad ?? '').trim() || 'Otros puntos';
+      const lista = grupos.get(ciudad) ?? [];
+      lista.push({ clave: p.clave, nombre: p.nombre, hora: horaLegible(p.hora), referencia: p.referencia ?? null });
+      grupos.set(ciudad, lista);
+    }
+    return [...grupos.entries()].map(([ciudad, puntos]) => ({ ciudad, puntos }));
+  }
+
+  /**
+   * Rechaza respuestas cuyo punto de salida no esté en la lista de opciones
+   * (los puntos de referencia, p. ej. los específicos de Caracas, no son
+   * elegibles; sí lo es la pseudo-opción `caracas` que se confirma después).
+   */
+  private validarPuntosSeleccionables(
+    ctx: Contexto,
+    globales: Record<string, Respuesta>,
+    porPasajero: Record<string, Record<string, Respuesta>>,
+  ) {
+    const campo = this.camposFormulario(ctx).find((c) => esCampoPuntoSalida(c));
+    if (!campo) return;
+    const validas = new Set((campo.opciones ?? []).map((o) => o.valor));
+    const revisar = (valor: unknown, ref: string | null) => {
+      if (typeof valor !== 'string' || !valor || validas.has(valor)) return;
+      throw new ApiError(
+        422,
+        'PUNTO_NO_SELECCIONABLE',
+        ref
+          ? 'Un punto de salida no está disponible para elegir. Revisa el punto de cada pasajero.'
+          : 'Elige un punto de salida de la lista.',
+        [{ campo: 'punto_abordaje', codigo: 'PUNTO_NO_SELECCIONABLE', mensaje: 'Elige un punto de salida de la lista.' }],
+      );
+    };
+    revisar(globales['punto_abordaje'], null);
+    for (const respuestas of Object.values(porPasajero)) {
+      revisar(respuestas?.['punto_abordaje'], 'pasajero');
+    }
   }
 
   /** Reporte de pago desde el cliente: desactivable (flag `reporte_pago_cliente`). */
@@ -571,13 +635,63 @@ export class PublicoService {
     titular.correo = datos.correo;
     titular.emergencia_nombre = datos.contacto_emergencia_nombre ?? null;
     titular.emergencia_telefono = datos.contacto_emergencia_telefono ?? null;
+    // Foto del documento: se procesa sólo si el cliente la envía en esta
+    // llamada (la reenvía únicamente cuando cambió).
+    const fotoTitular = await this.fotoDocumentoEntrada(
+      reserva.id,
+      body.documento_imagen,
+      titular.documento_imagen_id,
+    );
+    if (fotoTitular !== undefined) titular.documento_imagen_id = fotoTitular;
     await this.pasajeros.save(titular);
 
     ctx.reserva.version += 1;
     ctx.reserva.ultima_actividad_en = new Date();
     await this.reservas.save(ctx.reserva);
     await this.sincronizarClientes(reserva.id);
-    return { version: ctx.reserva.version };
+    // Devuelve el id de la foto para que el cliente sepa que quedó guardada.
+    return { version: ctx.reserva.version, documento_imagen_id: titular.documento_imagen_id ?? null };
+  }
+
+  /**
+   * Autocompletado del titular por documento: busca entre los pasajeros de
+   * **cualquier reserva anterior** (no sólo del enlace actual). Devuelve los
+   * datos que el formulario puede rellenar en los campos vacíos; el cliente
+   * decide qué usar y nunca sobrescribe lo que el usuario ya escribió.
+   */
+  async datosPorDocumento(token: string, body: { tipo_doc?: string; documento?: string }) {
+    const { reserva } = await this.stateMachine.resolverPorToken(token);
+    const tipo = String(body.tipo_doc ?? 'V').toUpperCase();
+    const doc = String(body.documento ?? '').trim();
+    if (doc.length < 5) {
+      throw new ApiError(422, 'VALIDACION', 'Escribe un número de documento válido.', [
+        { campo: 'documento', codigo: 'DOCUMENTO_INVALIDO', mensaje: 'Escribe un número de documento válido.' },
+      ]);
+    }
+    const norm =
+      tipo === 'OTRO' || tipo === 'P' ? doc.toUpperCase() : doc.replace(/\D/g, '');
+    const idx = indiceDocumento(tipo === 'OTRO' ? 'OTRO' : tipo, norm);
+    const coincidencias = await this.pasajeros
+      .createQueryBuilder('p')
+      .where('p.documento_idx = :idx', { idx })
+      .orderBy('p.creado_en', 'DESC')
+      .take(5)
+      .getMany();
+    // El pasajero de esta misma reserva no aporta nada nuevo: preferimos los
+    // de reservas anteriores (los más recientes primero).
+    const previo = coincidencias.find((p) => p.reserva_id !== reserva.id) ?? null;
+    if (!previo) return { encontrado: false };
+    return {
+      encontrado: true,
+      datos: {
+        nombre: previo.nombre || null,
+        fecha_nacimiento: descifrarONull(previo.fecha_nacimiento_enc) || null,
+        telefono: previo.telefono ?? null,
+        correo: previo.correo ?? null,
+        contacto_emergencia_nombre: previo.emergencia_nombre ?? null,
+        contacto_emergencia_telefono: previo.emergencia_telefono ?? null,
+      },
+    };
   }
 
   /**
@@ -668,6 +782,12 @@ export class PublicoService {
       if (entranteTitular.contacto_emergencia_nombre) titular.emergencia_nombre = String(entranteTitular.contacto_emergencia_nombre);
       if (entranteTitular.contacto_emergencia_telefono) titular.emergencia_telefono = String(entranteTitular.contacto_emergencia_telefono);
       titular.categoria = CATEGORIA_A_BE(this.categoriaDe(titular, ctx));
+      const fotoTitular = await this.fotoDocumentoEntrada(
+        reserva.id,
+        entranteTitular.documento_imagen,
+        titular.documento_imagen_id,
+      );
+      if (fotoTitular !== undefined) titular.documento_imagen_id = fotoTitular;
       await this.pasajeros.save(titular);
     }
 
@@ -689,7 +809,13 @@ export class PublicoService {
         tipoDoc === 'OTRO' || tipoDoc === 'P' ? doc.trim().toUpperCase() : doc.replace(/\D/g, '');
       const fn = String(p.fecha_nacimiento ?? '');
       const respuestas = (p.respuestas ?? {}) as Record<string, unknown>;
-      const datos = {
+      // Foto del documento: `undefined` = no viene en el payload (se
+      // conserva la guardada), `null` = el cliente la quitó.
+      const idPrevia =
+        existente?.documento_imagen_id ??
+        (typeof p.documento_imagen_id === 'string' ? p.documento_imagen_id : null);
+      const foto = await this.fotoDocumentoEntrada(reserva.id, p.documento_imagen, idPrevia);
+      const datos: Partial<Pasajero> = {
         reserva_id: reserva.id,
         orden: orden++,
         es_titular: false,
@@ -708,6 +834,7 @@ export class PublicoService {
         emergencia_telefono: p.contacto_emergencia_telefono ? String(p.contacto_emergencia_telefono) : null,
         declara_representante: p.declara_representante === undefined ? null : Boolean(p.declara_representante),
         respuestas: respuestas as Record<string, unknown>,
+        ...(foto !== undefined ? { documento_imagen_id: foto } : {}),
       };
       if (existente) {
         Object.assign(existente, datos);
@@ -759,6 +886,11 @@ export class PublicoService {
     this.validarAbierta(ctx);
     this.validarVersion(ctx, version);
 
+    // Los puntos de referencia (p. ej. los específicos de Caracas) no se
+    // guardan como respuesta; la pseudo-opción `caracas` sí. Se valida lo que
+    // se envía en ESTA llamada, antes de persistir.
+    this.validarPuntosSeleccionables(ctx, body.globales ?? {}, body.por_pasajero ?? {});
+
     if (body.globales) {
       reserva.respuestas_globales = { ...(reserva.respuestas_globales ?? {}), ...body.globales };
     }
@@ -794,6 +926,9 @@ export class PublicoService {
       if (!t?.nombre) detalles.push({ campo: 'nombre', mensaje: 'Escribe el nombre completo.' });
       if (!descifrarONull(t?.documento_enc)) detalles.push({ campo: 'documento', mensaje: 'Escribe el número de documento.' });
       if (!descifrarONull(t?.fecha_nacimiento_enc)) detalles.push({ campo: 'fecha_nacimiento', mensaje: 'Escribe la fecha de nacimiento.' });
+      if (!t?.documento_imagen_id) {
+        detalles.push({ campo: 'documento_imagen', mensaje: 'Sube la foto del documento de identidad.' });
+      }
     }
 
     if (paso === 'acompanantes') {
@@ -801,6 +936,13 @@ export class PublicoService {
       for (const p of ctx.pasajeros) {
         if (!p.nombre) {
           detalles.push({ campo: `pasajero:${p.ref_cliente ?? p.id}:nombre`, mensaje: 'Escribe el nombre del pasajero.' });
+        }
+        // Política: cada pasajero viaja con su documento de identidad fotografiado.
+        if (!p.documento_imagen_id) {
+          detalles.push({
+            campo: `pasajero:${p.ref_cliente ?? p.id}:documento_imagen`,
+            mensaje: 'Sube la foto del documento de identidad.',
+          });
         }
         const fn = descifrarONull(p.fecha_nacimiento_enc);
         const edad = fn ? edadEn(fn, this.fechaSalida(ctx)) : null;
@@ -1226,6 +1368,74 @@ export class PublicoService {
     return archivo;
   }
 
+  /** Formatos y límite de la foto del documento de identidad (política: 5 MB). */
+  private static readonly MIME_FOTO_DOC = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'application/pdf',
+  ]);
+  private static readonly MAX_FOTO_DOC_BYTES = 5 * 1024 * 1024;
+
+  /**
+   * Foto del documento de identidad de un pasajero: se guarda en el storage
+   * privado (proposito `documento_identidad`) y devuelve su `archivo_id`.
+   * Rechaza formatos fuera de la política (415) y tamaños > 5 MB (413).
+   */
+  private async guardarFotoDocumento(
+    reservaId: string,
+    entrada: unknown,
+    archivoActualId?: string | null,
+  ): Promise<string> {
+    const datos = (entrada && typeof entrada === 'object' ? entrada : {}) as { data?: unknown; tipo?: unknown };
+    const data = typeof datos.data === 'string' ? datos.data : '';
+    const tipo = String(datos.tipo ?? '').toLowerCase().split(';')[0];
+    if (!data || !PublicoService.MIME_FOTO_DOC.has(tipo)) {
+      throw new ApiError(
+        415,
+        'ARCHIVO_TIPO_INVALIDO',
+        'Formato no permitido: usa una foto JPG, PNG o WebP, o un PDF.',
+        [{ campo: 'documento_imagen', codigo: 'ARCHIVO_TIPO_INVALIDO', mensaje: 'Formato no permitido: usa una foto JPG, PNG o WebP, o un PDF.' }],
+      );
+    }
+    const base64 = data.includes(',') ? data.split(',')[1] : data;
+    const buffer = Buffer.from(base64, 'base64');
+    if (!buffer.length) {
+      throw new ApiError(422, 'VALIDACION', 'No pudimos leer la foto del documento. Tómala de nuevo.', [
+        { campo: 'documento_imagen', codigo: 'VALIDACION', mensaje: 'No pudimos leer la foto del documento. Tómala de nuevo.' },
+      ]);
+    }
+    if (buffer.length > PublicoService.MAX_FOTO_DOC_BYTES) {
+      throw new ApiError(413, 'ARCHIVO_GRANDE', 'La foto del documento supera el máximo de 5 MB.', [
+        { campo: 'documento_imagen', codigo: 'ARCHIVO_GRANDE', mensaje: 'La foto del documento supera el máximo de 5 MB.' },
+      ]);
+    }
+    // Idempotencia: si es exactamente la misma imagen que ya está guardada,
+    // se conserva el archivo actual (evita duplicados en cada autoguardado).
+    const sha = createHash('sha256').update(buffer).digest('hex');
+    if (archivoActualId) {
+      const actual = await this.archivos.findOne({ where: { id: archivoActualId } });
+      if (actual && actual.sha256 === sha) return archivoActualId;
+    }
+    const archivo = await this.guardarArchivo(reservaId, 'documento_identidad', data, tipo);
+    return archivo.id;
+  }
+
+  /**
+   * Resuelve la foto enviada en un payload: `undefined` = no se envió (no
+   * toca el valor guardado), `null` = el cliente la quitó, objeto = imagen
+   * nueva que se guarda.
+   */
+  private async fotoDocumentoEntrada(
+    reservaId: string,
+    entrada: unknown,
+    archivoActualId?: string | null,
+  ): Promise<string | null | undefined> {
+    if (entrada === undefined) return undefined;
+    if (entrada === null) return null;
+    return this.guardarFotoDocumento(reservaId, entrada, archivoActualId);
+  }
+
   // -------------------------------------------------------------------------
   // Pagos (público)
   // -------------------------------------------------------------------------
@@ -1316,7 +1526,9 @@ export class PublicoService {
     });
     const guardado = await this.pagos.save(pago);
 
-    await this.stateMachine.transicionar(reserva.id, 'reportar_pago', { tipo: 'cliente' });
+    // El pago del cliente es un acuse: queda `reportado` sin cambiar el estado
+    // de la reserva ni congelar el hold. La agencia confirma la reserva cuando
+    // le corresponde y registra el pago definitivo desde el panel.
     await this.pagosService.recalcularEstadoPago(reserva.id);
     return { pago_id: guardado.id };
   }
@@ -1348,7 +1560,6 @@ export class PublicoService {
     pago.estado = 'reportado';
     pago.correccion_texto = null;
     await this.pagos.save(pago);
-    await this.stateMachine.transicionar(reserva.id, 'reportar_pago', { tipo: 'cliente' });
     await this.pagosService.recalcularEstadoPago(reserva.id);
     return { ok: true };
   }

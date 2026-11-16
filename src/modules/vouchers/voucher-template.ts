@@ -19,8 +19,11 @@ export interface VoucherTemplateData {
   puntoAbordaje: string;
   pasajeros: {
     nombre: string;
-    categoria: string;
+    /** Nota del pasajero: «sin costo» para menores de 5 (vacío si no aplica). */
+    nota: string;
     documento: string;
+    /** Punto de salida propio del pasajero (salidas personalizadas). */
+    puntoAbordaje?: string;
     selecciones: string[];
     alergias?: string;
   }[];
@@ -52,10 +55,11 @@ export function generarHtmlVoucher(datos: VoucherTemplateData): string {
       <div class="pasajero-header">
         <span class="pasajero-num">${i + 1}</span>
         <strong>${p.nombre}</strong>
-        <span class="categoria">${p.categoria}</span>
+        ${p.nota ? `<span class="nota">${p.nota}</span>` : ''}
       </div>
       <div class="pasajero-detalles">
         <span>Doc: ${p.documento}</span>
+        ${p.puntoAbordaje && p.puntoAbordaje !== datos.puntoAbordaje ? `<span>Salida: ${p.puntoAbordaje}</span>` : ''}
         ${p.selecciones.length > 0 ? `<span>Selecciones: ${p.selecciones.join(', ')}</span>` : ''}
         ${p.alergias ? `<span class="alergia">Alergias: ${p.alergias}</span>` : ''}
       </div>
@@ -177,9 +181,9 @@ export function generarHtmlVoucher(datos: VoucherTemplateData): string {
       font-size: 10px;
       font-weight: bold;
     }
-    .categoria {
-      background: #e0e7ff;
-      color: #2563eb;
+    .nota {
+      background: #dcfce7;
+      color: #15803d;
       padding: 2px 8px;
       border-radius: 12px;
       font-size: 10px;

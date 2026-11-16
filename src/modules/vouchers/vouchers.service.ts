@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import QRCode from 'qrcode';
-import { Archivo, Configuracion, Firma, OutboxEvento, Reserva, Voucher, Pasajero, Pago, FechaTour, Tour, PuntoSalida } from '../../database/entities';
+import { Archivo, Configuracion, Firma, OutboxEvento, PlantillaTerminosVersion, Reserva, Voucher, Pasajero, Pago, FechaTour, Tour, PuntoSalida } from '../../database/entities';
 import { ApiError } from '../../common/errors';
 import { ArchivosService } from '../archivos/archivos.service';
 import { VoucherPdfService } from './voucher-pdf.service';
@@ -152,14 +152,27 @@ export class VouchersService {
 
     // Punto de salida elegido en el formulario (catálogo global).
     const globales = (reserva.respuestas_globales ?? {}) as Record<string, unknown>;
-    const clavePunto = typeof globales['punto_abordaje'] === 'string' ? String(globales['punto_abordaje']) : '';
-    let puntoAbordaje = 'Por definir';
-    if (clavePunto) {
-      const punto = await this.puntos.findOne({ where: { clave: clavePunto } });
-      puntoAbordaje = punto
-        ? `${punto.nombre} (${horaLegible(punto.hora)})`
-        : clavePunto.replace(/_/g, ' ');
-    }
+    const claveGlobal = typeof globales['punto_abordaje'] === 'string' ? String(globales['punto_abordaje']) : '';
+    // Sólo los puntos activos sirven para traducir claves → nombre legible.
+    const puntosPorClave = new Map(
+      (await this.puntos.find()).map((p) => [p.clave, `${p.nombre} (${horaLegible(p.hora)})`]),
+    );
+    const nombrePunto = (clave: string): string => {
+      if (!clave) return 'Por definir';
+      // Pseudo-clave del selector de ciudades: el punto exacto de Caracas se
+      // confirma después por WhatsApp.
+      if (clave === 'caracas') return 'Caracas — punto por confirmar';
+      return puntosPorClave.get(clave) ?? clave.replace(/_/g, ' ');
+    };
+    // Cada pasajero puede salir de un punto distinto (salida personalizada);
+    // si no respondió, hereda el punto global de la reserva.
+    const puntoDePasajero = (p: Pasajero): string => {
+      const respuestas = (p.respuestas ?? {}) as Record<string, unknown>;
+      const clave = typeof respuestas['punto_abordaje'] === 'string' ? String(respuestas['punto_abordaje']) : '';
+      return nombrePunto(clave || claveGlobal);
+    };
+    // El titular resume la salida en la cabecera; cada fila lleva su propio punto.
+    const puntoAbordaje = titular ? puntoDePasajero(titular) : nombrePunto(claveGlobal);
 
     const [firmaEmpresaDataUrl, firmaCliente] = await Promise.all([
       this.dataUrlFirmaEmpresa(),
@@ -167,6 +180,15 @@ export class VouchersService {
         ? this.firmaClienteDataUrl(firmaVigente)
         : Promise.resolve({ dataUrl: '', archivoPerdido: false }),
     ]);
+
+    // Versión legible de los términos que firmó el titular (número de la
+    // versión, no el UUID).
+    const versionTerminos = firmaVigente?.terminos_version_id
+      ? await this.ds
+          .getRepository(PlantillaTerminosVersion)
+          .findOne({ where: { id: firmaVigente.terminos_version_id } })
+      : null;
+    const terminosVersion = versionTerminos ? `v${versionTerminos.version}` : '';
 
     return {
       codigoReserva: reserva.codigo ?? reserva.ref_corta ?? reserva.id,
@@ -183,8 +205,15 @@ export class VouchersService {
             : '';
         return {
           nombre: p.nombre,
-          categoria: p.categoria ?? 'Pasajero',
+          // Sin etiqueta de categoría en el voucher: los menores de 5 años
+          // viajan gratis y sólo se muestra la nota de «sin costo».
+          nota:
+            p.categoria === 'infante'
+              ? 'Sin costo · viaja en piernas de su representante'
+              : '',
           documento: p.documento_ultimos4 ? `***${p.documento_ultimos4}` : 'Sin documento',
+          // Punto de salida propio del pasajero (si lo definió) o el de la reserva.
+          puntoAbordaje: puntoDePasajero(p),
           selecciones: [], // TODO: obtener del formulario
           // Condición médica declarada por pasajero (campo `detalle_alergias`).
           alergias: detalle ? detalle : undefined,
@@ -203,7 +232,8 @@ export class VouchersService {
       firmaClienteArchivoPerdido: firmaCliente.archivoPerdido,
       firmaClienteNombre: titular?.nombre ?? 'Titular',
       firmaClienteFecha: firmaVigente ? new Date(firmaVigente.firmada_en).toLocaleDateString('es-VE') : '',
-      terminosVersion: 'v1', // TODO: versión legible de los términos firmados
+      // Versión legible de los términos firmados (número de la versión).
+      terminosVersion,
       emitidoEn: new Date().toLocaleString('es-VE'),
     };
   }

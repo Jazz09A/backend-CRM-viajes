@@ -34,8 +34,6 @@ type EventoReserva =
   | 'confirmar_resumen'
   | 'reabrir_edicion'
   | 'firmar'
-  | 'reportar_pago'
-  | 'resolver_pago'
   | 'cancelar'
   | 'expirar'
   | 'reactivar'
@@ -110,9 +108,8 @@ export class ReservaStateMachine {
       },
     },
     reabrir_edicion: {
-      desde: ['pendiente_firma', 'pendiente_pago', 'pago_en_verificacion'],
+      desde: ['pendiente_firma', 'pendiente_pago'],
       hacia: 'en_registro',
-      guarda: (r) => !r.tiene_pago_por_validar,
       efectos: async (em, r) => {
         // Invalida la firma vigente (T4); el hold se conserva y se renueva.
         const d = this.ds.options.type as string;
@@ -135,41 +132,8 @@ export class ReservaStateMachine {
         await this.outbox(em, 'reserva.firmada', { reserva_id: r.id });
       },
     },
-    reportar_pago: {
-      desde: ['pendiente_pago', 'pago_en_verificacion'],
-      hacia: 'pago_en_verificacion',
-      efectos: async (em, r) => {
-        r.tiene_pago_por_validar = true;
-        // Congela el vencimiento del hold mientras haya pagos por validar (T5).
-        r.hold_restante_seg = r.expira_en
-          ? Math.max(0, Math.floor((r.expira_en.getTime() - Date.now()) / 1000))
-          : null;
-        r.expira_en = null;
-        await em.save(Reserva, r);
-        await this.outbox(em, 'pago.reportado', { reserva_id: r.id });
-      },
-    },
-    resolver_pago: {
-      desde: ['pago_en_verificacion'],
-      hacia: 'pendiente_pago',
-      efectos: async (em, r, ctx) => {
-        r.tiene_pago_por_validar = false;
-        // Reanuda el vencimiento restante del hold (T6) o lo convierte en venta
-        // si el abono aprobado ≥ abono_minimo_pct (D-06) — lo decide el caller
-        // vía ctx.datos.venta_definitiva.
-        if (ctx.datos?.venta_definitiva) {
-          r.expira_en = null;
-          r.cupo_estado = 'vendido';
-          await this.cupos.vender(r.fecha_tour_id, r.cupo_pasajeros);
-        } else if (r.hold_restante_seg) {
-          r.expira_en = new Date(Date.now() + r.hold_restante_seg * 1000);
-          r.hold_restante_seg = null;
-        }
-        await em.save(Reserva, r);
-      },
-    },
     confirmar_pago: {
-      desde: ['pago_en_verificacion', 'pendiente_pago'],
+      desde: ['pendiente_pago'],
       hacia: 'confirmada',
       efectos: async (em, r) => {
         // Hold → venta + código VJ-AAAA-NNNNN (D-01) + voucher.
@@ -196,7 +160,7 @@ export class ReservaStateMachine {
       },
     },
     cancelar: {
-      desde: ['enlace_creado', 'en_registro', 'pendiente_firma', 'pendiente_pago', 'pago_en_verificacion', 'confirmada'],
+      desde: ['enlace_creado', 'en_registro', 'pendiente_firma', 'pendiente_pago', 'confirmada'],
       hacia: 'cancelada',
       efectos: async (em, r, ctx) => {
         if (r.cupo_estado === 'retenido' || r.cupo_estado === 'vendido') {

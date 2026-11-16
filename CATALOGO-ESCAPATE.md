@@ -40,9 +40,16 @@ chat** que requieren revisión.
 - **1 plantilla de términos** publicada (las *Condiciones Generales del
   Servicio* del chat).
 - **9 puntos de salida** en el catálogo global (`punto_salida`), que es el
-  que usan el formulario público y el voucher.
-- **Un formulario publicado por tour**: punto de abordaje, selección de
-  almuerzo (si el tour incluye comidas), alergias y comentarios.
+  que usan el formulario público y el voucher. Cada punto lleva `ciudad` y
+  `seleccionable`: **sólo Guatire y Guarenas son elegibles**; los 5 de
+  Caracas viajan con `seleccionable = false` (el formulario los muestra en
+  el bloque «Otros puntos de salida» y el backend rechaza guardarlos como
+  respuesta: el punto de Caracas se confirma en el grupo de viaje por
+  WhatsApp).
+- **Un formulario publicado por tour**: punto de salida (con
+  `permite_por_pasajero` para **salidas personalizadas**: cada miembro del
+  grupo puede salir de un punto distinto), selección de almuerzo (si el
+  tour incluye comidas), alergias y comentarios.
 
 Efectos colaterales del importador:
 
@@ -50,6 +57,10 @@ Efectos colaterales del importador:
   almuerzo (necesario para el reporte de cocina).
 - Desactiva los puntos de salida que no están en el catálogo (los genéricos de
   la semilla demo), para que el cliente no vea duplicados.
+- Si la definición del punto de salida del formulario publicado cambió
+  (salidas personalizadas, Caracas fuera del selector…), publica una **versión
+  nueva** del formulario (v2, v3…) y archiva la anterior. Las reservas ya
+  creadas conservan su snapshot.
 - Con `--archivar-demo` archiva los 4 tours de la semilla demo (no los borra:
   se pueden reactivar desde el panel).
 
@@ -81,6 +92,18 @@ Efectos colaterales del importador:
    tour y en su itinerario.
 8. **Formulario publicado por tour.** Sin formulario publicado el tour no se
    puede activar; el importador lo publica siempre (v1).
+9. **Comidas de las estadías.** Los full days incluyen desayuno y almuerzo.
+   Las estadías incluyen desayuno, almuerzo y cena, y **la cena se sirve sólo
+   hasta el día antes del retorno** (la salida de regreso es por la tarde):
+   en el catálogo las inclusiones van desglosadas «Día 1 / Día 2 …» y la
+   ficha pública las muestra con el día en negrita. Choroní *con comidas* y
+   Mérida *Inicio de Año* no desglosan en el chat: se cargaron con el patrón
+   de estadía (2/2/1 y 3/3/2) y quedan anotados en sus `notas` para
+   confirmar con Escapate.
+10. **Reserva y versión del formulario.** Al crear la reserva se congela en
+    `form_version_id` la versión publicada del formulario: así el panel
+    traduce las respuestas («guatire_castillejo» → «Emporium Nuevo
+    Castillejo») y el voucher usa ese snapshot.
 
 ## Anomalías del chat
 

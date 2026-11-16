@@ -283,6 +283,9 @@ export class AdminFxService {
       documento: descifrarONull(p.documento_enc) || String(base.documento ?? ''),
       fecha_nacimiento: descifrarONull(p.fecha_nacimiento_enc),
       documento_enmascarado: base.documento_enmascarado ?? null,
+      // Foto del documento de identidad: sólo el id; la imagen se sirve con
+      // URL firmada (`GET /archivos/:id/url`) y queda auditada.
+      documento_imagen_id: p.documento_imagen_id ?? null,
     };
   }
 
@@ -382,9 +385,11 @@ export class AdminFxService {
       })),
     );
 
-    const pendientes = await this.pagoRepo.find({ where: { estado: In(['reportado', 'correccion_solicitada']) } });
-    const masAntiguo = pendientes.length
-      ? Math.max(...pendientes.map((p) => Math.max(0, Math.round((Date.now() - new Date(p.creado_en).getTime()) / 60000))))
+    // Reservas firmadas que esperan que la agencia las confirme (ya no existe
+    // la cola de pagos por validar).
+    const porConfirmar = await this.reservaRepo.find({ where: { estado: 'pendiente_pago' } });
+    const masAntiguo = porConfirmar.length
+      ? Math.max(...porConfirmar.map((r) => Math.max(0, Math.round((Date.now() - new Date(r.creado_en).getTime()) / 60000))))
       : 0;
 
     const ahora = new Date();
@@ -426,15 +431,18 @@ export class AdminFxService {
     }
 
     const atencion: Record<string, unknown>[] = [];
-    const porVerificar = await this.reservaRepo.find({ where: { estado: 'pago_en_verificacion' }, take: 10 });
-    for (const r of porVerificar) {
+    const porConfirmarLista = porConfirmar
+      .slice()
+      .sort((a, b) => new Date(a.creado_en).getTime() - new Date(b.creado_en).getTime())
+      .slice(0, 10);
+    for (const r of porConfirmarLista) {
       atencion.push({
         id: r.id,
-        tipo: 'pago',
-        titulo: `Pago por verificar — ${r.ref_corta}`,
-        detalle: 'La reserva espera validación del pago registrado.',
+        tipo: 'reserva',
+        titulo: `Reserva por confirmar — ${r.ref_corta}`,
+        detalle: 'La reserva está lista para confirmarse (firma registrada).',
         entidad_id: r.id,
-        severidad: 'alta',
+        severidad: 'media',
       });
     }
     const porExpirar = reservas.filter(
@@ -454,7 +462,7 @@ export class AdminFxService {
     return {
       reservas_por_estado: [...porEstado.entries()].map(([estado, total]) => ({ estado, total })),
       ocupacion_proximas: ocupacion,
-      pagos_por_verificar: [{ total: pendientes.length, mas_antiguo_min: masAntiguo }],
+      por_confirmar: [{ total: porConfirmar.length, mas_antiguo_min: masAntiguo }],
       ingresos_mes_usd: ingresos.toFixed(2),
       ventas_por_mes,
       requiere_atencion: atencion,
@@ -483,9 +491,6 @@ export class AdminFxService {
       qb.andWhere('r.expira_en IS NOT NULL').andWhere('r.expira_en < :limite', {
         limite: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
       });
-    }
-    if (f.con_pago_por_validar === 'true' || f.con_pago_por_validar === '1') {
-      qb.andWhere('r.tiene_pago_por_validar = 1');
     }
     const limite = Math.min(Number(f.limite) || 20, 100);
     const cursor = f.cursor ? Number(f.cursor) : 0;
@@ -1002,12 +1007,12 @@ export class AdminFxService {
    *
    * No exige que el saldo esté en cero: la agencia puede confirmar con un
    * abono y cobrar el resto al abordar (así funciona el chat de Escapate
-   * Tours). Lo que sí exige es que no queden pagos por validar.
+   * Tours). El pago se registra después y nace aprobado.
    */
   async confirmarReserva(id: string, body: { motivo?: string }, usuarioId: string) {
     const r = await this.reservaRepo.findOne({ where: { id } });
     if (!r) throw ApiError.noEncontrado('Reserva');
-    if (!['pendiente_pago', 'pago_en_verificacion'].includes(r.estado)) {
+    if (r.estado !== 'pendiente_pago') {
       throw ApiError.transicionInvalida(
         `No se puede confirmar una reserva en estado ${r.estado}`,
       );
@@ -1021,17 +1026,8 @@ export class AdminFxService {
       ]);
     }
 
-    // Pagos sin validar: si se confirmara con ellos abiertos, al aprobarlos
-    // después la máquina de estados chocaría (resolver_pago exige estar en
-    // `pago_en_verificacion`).
-    const porValidar = await this.pagoRepo.find({
-      where: { reserva_id: id, estado: In(['reportado', 'correccion_solicitada']) },
-    });
-    if (porValidar.length) {
-      throw ApiError.validacion('Hay un pago por validar. Apruébalo o anúlalo antes de confirmar.', [
-        { campo: 'pagos', codigo: 'PAGO_POR_VALIDAR', mensaje: 'Hay pagos sin resolver.' },
-      ]);
-    }
+    // El pago ya no es prerrequisito: la reserva se confirma primero y el pago
+    // se registra (o se cobra) después, naciendo aprobado.
 
     const motivo = String(body.motivo ?? '').trim() || 'Confirmación manual de la agencia';
     const saldoAntes = Math.max(0, num(r.total_usd) - (num(r.aprobado_usd) - num(r.reembolsado_usd)));
@@ -1103,35 +1099,15 @@ export class AdminFxService {
     return fe;
   }
 
-  async validarPago(id: string, body: { accion: string; monto_validado?: string; motivo?: string; motivo_catalogo?: string; texto_cliente?: string; confirmar_duplicado?: boolean; idempotencyKey?: string }, usuarioId: string) {
-    switch (body.accion) {
-      case 'aprobar':
-        await this.pagosService.aprobar(
-          id,
-          {
-            monto_validado: body.monto_validado ? Number(body.monto_validado) : undefined,
-            ajuste_motivo: body.motivo,
-            confirmar_duplicado: body.confirmar_duplicado,
-          },
-          usuarioId,
-        );
-        break;
-      case 'rechazar':
-        await this.pagosService.rechazar(
-          id,
-          { motivo_codigo: body.motivo_catalogo ?? body.motivo ?? 'otro', motivo_texto: body.texto_cliente ?? body.motivo },
-          usuarioId,
-        );
-        break;
-      case 'solicitar_correccion':
-        await this.pagosService.solicitarCorreccion(id, { texto: body.texto_cliente ?? body.motivo ?? '' }, usuarioId);
-        break;
-      case 'anular':
-        await this.pagosService.anular(id, body.motivo ?? 'Anulado por operador', usuarioId);
-        break;
-      default:
-        throw ApiError.validacion('Acción de validación desconocida');
+  /**
+   * Acciones correctivas sobre un pago. Ya no existe la aprobación: el pago
+   * nace aprobado al registrarse. Sólo queda **anular** (con motivo).
+   */
+  async validarPago(id: string, body: { accion: string; motivo?: string }, usuarioId: string) {
+    if (body.accion !== 'anular') {
+      throw ApiError.validacion('Los pagos ya no se aprueban ni se rechazan: se registran aprobados. Sólo queda anularlos.');
     }
+    await this.pagosService.anular(id, body.motivo ?? 'Anulado por operador', usuarioId);
     const p = await this.pagoRepo.findOne({ where: { id } });
     const reserva = p ? await this.reservaRepo.findOne({ where: { id: p.reserva_id } }) : null;
     return { ok: true, saldo_usd: reserva ? (await this.reservaFe(reserva)).saldo_usd : '0.00' };
@@ -1182,9 +1158,9 @@ export class AdminFxService {
   }
 
   /**
-   * Anota los datos de un pago desde la reserva (el cliente NO reporta nada
-   * por el formulario). El pago queda `reportado` y entra a la cola
-   * «Pagos por validar»; la aprobación sigue el flujo normal de la cola.
+   * Anota los datos de un pago desde la reserva (el cliente NO reporta nada).
+   * El pago **nace aprobado**: no hay cola ni validación, y si cubre el saldo
+   * la reserva pendiente se confirma sola (código + voucher).
    */
   async registrarPagoReserva(
     id: string,
@@ -1247,7 +1223,7 @@ export class AdminFxService {
         reserva_id: id,
         metodo_id: metodo.id,
         origen: 'operador',
-        estado: 'reportado',
+        estado: 'aprobado',
         monto_reportado: montoNum.toFixed(2),
         monto: montoNum.toFixed(2),
         moneda,
@@ -1262,16 +1238,25 @@ export class AdminFxService {
           _registrado_por_nombre: usuario?.nombre ?? 'Agencia',
         },
         registrado_por: usuarioId,
+        validado_por: usuarioId,
+        validado_en: new Date(),
         duplicado_de_pago_id: duplicadoDe,
       }),
     );
 
-    // La reserva pasa a «pago en verificación» (congela el hold) si el evento
-    // aplica a su estado; en estados como `confirmada` sólo se anota el pago.
-    if (['pendiente_pago', 'pago_en_verificacion'].includes(reserva.estado)) {
-      await this.stateMachine.transicionar(id, 'reportar_pago', { tipo: 'usuario', id: usuarioId });
-    }
     await this.pagosService.recalcularEstadoPago(id);
+
+    // Si el pago cubre el saldo, la reserva pendiente se confirma sola
+    // (código + voucher). Antes había que confirmarla a mano.
+    const actualizada = await this.reservaRepo.findOne({ where: { id } });
+    if (actualizada && actualizada.estado === 'pendiente_pago') {
+      const saldo = num(actualizada.total_usd) - (num(actualizada.aprobado_usd) - num(actualizada.reembolsado_usd));
+      if (saldo <= 0.005) {
+        await this.stateMachine.transicionar(id, 'confirmar_pago', { tipo: 'usuario', id: usuarioId }, {
+          motivo: `Pago registrado de ${moneda} ${montoNum.toFixed(2)}`,
+        });
+      }
+    }
     return { ok: true, pago_id: pago.id };
   }
 

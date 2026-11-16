@@ -61,6 +61,8 @@ export function pasajeroPublico(p: Pasajero, fechaSalida: string, tarifas: { cat
     fecha_nacimiento: fechaNacimiento,
     categoria: CATEGORIA_A_FE(p.categoria),
     respuestas: p.respuestas ?? {},
+    // Sólo el id: la imagen se sirve con URL firmada desde el panel (auditada).
+    documento_imagen_id: p.documento_imagen_id ?? null,
     ...(p.telefono ? { telefono: p.telefono } : {}),
     ...(p.correo ? { correo: p.correo } : {}),
     ...(p.emergencia_nombre || p.emergencia_telefono

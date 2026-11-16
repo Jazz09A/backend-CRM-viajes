@@ -13,7 +13,9 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ logger: false, trustProxy: true }),
+    // bodyLimit: las fotos del documento viajan en base64 dentro del JSON
+    // (5 MB binarios ≈ 6.7 MB en base64); el default de1 MB no alcanzaba.
+    new FastifyAdapter({ logger: false, trustProxy: true, bodyLimit: 8 * 1024 * 1024 }),
   );
 
   await app.register(fastifyMultipart, { limits: { fileSize: 10 * 1024 * 1024 } });

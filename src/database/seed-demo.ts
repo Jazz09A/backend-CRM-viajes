@@ -40,9 +40,11 @@ const PRECIOS: Record<string, { Adulto: string; Niño: string; 'Tercera Edad': s
 
 const RANGOS: Record<string, { min: number; max: number }> = {
   adulto: { min: 18, max: 120 },
-  nino: { min: 3, max: 11 },
+  nino: { min: 5, max: 11 },
   tercera_edad: { min: 61, max: 120 },
-  infante: { min: 0, max: 2 },
+  // Política de la agencia: hasta 4 años viaja gratis en piernas de su
+  // representante (sin cupo y sin costo).
+  infante: { min: 0, max: 4 },
 };
 const CATEGORIAS_BE = ['adulto', 'nino', 'tercera_edad', 'infante'] as const;
 const CATEGORIA_A_PRECIO: Record<string, keyof (typeof PRECIOS)[string] | null> = {

@@ -316,17 +316,20 @@ export class ExportacionesService {
       { header: 'Documento', key: 'documento', width: 15 },
       { header: 'Titular', key: 'titular', width: 10 },
       { header: 'Reserva', key: 'reserva', width: 15 },
+      { header: 'Punto de salida', key: 'punto_salida', width: 34 },
     ];
 
     const d = this.ds.options.type as string;
     const rows = await this.ds.query(
-      `SELECT p.nombre, p.categoria, p.documento_ultimos4, p.es_titular, r.codigo
+      `SELECT p.nombre, p.categoria, p.documento_ultimos4, p.es_titular, p.respuestas,
+              r.codigo, r.respuestas_globales
        FROM pasajero p
        JOIN reserva r ON r.id = p.reserva_id
        WHERE r.fecha_tour_id = ${ph(d, 0)}
        ORDER BY p.orden`,
       [fechaTourId],
     );
+    const puntos = await this.mapaPuntos();
 
     for (const row of rows) {
       ws.addRow({
@@ -335,8 +338,43 @@ export class ExportacionesService {
         documento: row.documento_ultimos4 ? `***${row.documento_ultimos4}` : '',
         titular: row.es_titular ? 'Sí' : 'No',
         reserva: row.codigo ?? '',
+        punto_salida: this.puntoDeRespuestas(row, puntos),
       });
     }
+  }
+
+  /** clave → "Nombre (hora)" del catálogo global de puntos de salida. */
+  private async mapaPuntos(): Promise<Map<string, string>> {
+    const filas = await this.ds.query(`SELECT clave, nombre, hora FROM punto_salida`);
+    return new Map(
+      filas.map((f: { clave: string; nombre: string; hora: string }) => [f.clave, `${f.nombre} (${f.hora})`]),
+    );
+  }
+
+  /**
+   * Punto de salida de un pasajero: el suyo si lo definió (salidas
+   * personalizadas por miembro), si no el global de la reserva.
+   */
+  private puntoDeRespuestas(row: Record<string, unknown>, puntos: Map<string, string>): string {
+    const parse = (valor: unknown): Record<string, unknown> | null => {
+      if (valor && typeof valor === 'object') return valor as Record<string, unknown>;
+      if (typeof valor === 'string' && valor) {
+        try {
+          const obj = JSON.parse(valor);
+          return obj && typeof obj === 'object' ? (obj as Record<string, unknown>) : null;
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    };
+    const propias = parse(row.respuestas) ?? {};
+    const globales = parse(row.respuestas_globales) ?? {};
+    const clave = [propias['punto_abordaje'], globales['punto_abordaje']].find((v) => typeof v === 'string' && v);
+    if (!clave) return '';
+    const claveStr = String(clave);
+    if (claveStr === 'caracas') return 'Caracas — punto por confirmar';
+    return puntos.get(claveStr) ?? claveStr.replace(/_/g, ' ');
   }
 
   private async hojaClientes(wb: Workbook, filtros: Record<string, unknown>) {
@@ -456,18 +494,20 @@ export class ExportacionesService {
       { header: 'Titular', key: 'titular', width: 10 },
       { header: 'Reserva', key: 'reserva', width: 15 },
       { header: 'Teléfono', key: 'telefono', width: 15 },
+      { header: 'Punto de salida', key: 'punto_salida', width: 34 },
     ];
 
     const d = this.ds.options.type as string;
     const rows = await this.ds.query(
       `SELECT p.orden, p.nombre, p.categoria, p.documento_ultimos4, p.es_titular,
-              p.telefono, r.codigo
+              p.telefono, p.respuestas, r.codigo, r.respuestas_globales
        FROM pasajero p
        JOIN reserva r ON r.id = p.reserva_id
        WHERE r.fecha_tour_id = ${ph(d, 0)} AND r.estado != 'cancelada'
        ORDER BY p.orden`,
       [fechaTourId],
     );
+    const puntos = await this.mapaPuntos();
 
     for (const row of rows) {
       ws.addRow({
@@ -478,6 +518,7 @@ export class ExportacionesService {
         titular: row.es_titular ? 'Sí' : 'No',
         reserva: row.codigo ?? '',
         telefono: row.telefono ?? '',
+        punto_salida: this.puntoDeRespuestas(row, puntos),
       });
     }
   }

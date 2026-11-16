@@ -167,7 +167,7 @@ export class AdminFxController {
 
   /**
    * Anota datos de pago desde la reserva (el cliente no reporta nada):
-   * entra a la cola «Pagos por validar».
+   * el pago nace aprobado, sin cola ni validación.
    */
   @Post('reservas/:id/pagos')
   @Roles('superadmin', 'operador')

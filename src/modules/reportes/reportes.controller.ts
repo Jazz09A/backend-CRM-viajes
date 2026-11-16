@@ -21,8 +21,8 @@ export class ReportesController {
     const reservasPorEstado = await this.ds.query(
       `SELECT estado, COUNT(*) AS n FROM reserva GROUP BY estado`,
     );
-    const pagosPorValidar = await this.ds.query(
-      `SELECT COUNT(*) AS n FROM pago WHERE estado IN ('reportado','correccion_solicitada')`,
+    const porConfirmar = await this.ds.query(
+      `SELECT COUNT(*) AS n FROM reserva WHERE estado = 'pendiente_pago'`,
     );
     const ocupacion = await this.ds.query(
       `SELECT ft.fecha_salida, ft.cupos_total, ft.cupos_vendidos, ft.cupos_retenidos
@@ -32,7 +32,7 @@ export class ReportesController {
     void afectados;
     return {
       reservas_por_estado: this.normalizar(reservasPorEstado),
-      pagos_por_validar: Number(this.primera(pagosPorValidar)?.n ?? 0),
+      por_confirmar: Number(this.primera(porConfirmar)?.n ?? 0),
       proximas_fechas: this.normalizar(ocupacion),
     };
   }

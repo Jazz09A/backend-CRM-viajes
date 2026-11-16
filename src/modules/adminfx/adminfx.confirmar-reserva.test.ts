@@ -42,7 +42,8 @@ import { AdminFxService } from './adminfx.service';
  * queda en `pendiente_pago` y nadie la avanza. Esta acción la confirma.
  *
  * Lo que se verifica son las guardas: no se confirma una reserva sin firma,
- * ni con pagos por validar, ni desde un estado que no lo permita.
+ * ni desde un estado que no lo permita. El pago ya no es prerrequisito: se
+ * registra después y nace aprobado.
  */
 describe('AdminFxService.confirmarReserva', () => {
   let ds: DataSource;
@@ -210,7 +211,7 @@ describe('AdminFxService.confirmarReserva', () => {
     assert.equal(reserva.estado, 'pendiente_pago');
   });
 
-  it('no confirma si hay un pago por validar', async () => {
+  it('confirma aunque el titular haya reportado un pago (acuse, ya no hay cola)', async () => {
     await ds.getRepository(Pago).save(
       ds.getRepository(Pago).create({
         reserva_id: reservaId,
@@ -229,16 +230,9 @@ describe('AdminFxService.confirmarReserva', () => {
       }),
     );
 
-    await assert.rejects(
-      () => service.confirmarReserva(reservaId, { motivo: 'prueba' }, usuarioId),
-      (error: { status?: number }) => {
-        assert.equal(error.status, 422);
-        return true;
-      },
-    );
-
-    const reserva = await ds.getRepository(Reserva).findOneByOrFail({ id: reservaId });
-    assert.equal(reserva.estado, 'pendiente_pago');
+    const resp = await service.confirmarReserva(reservaId, { motivo: 'prueba' }, usuarioId);
+    assert.equal(resp.ok, true);
+    assert.equal(resp.estado, 'confirmada');
   });
 
   it('no confirma una reserva en un estado que no lo permite', async () => {

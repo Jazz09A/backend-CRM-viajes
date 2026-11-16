@@ -92,31 +92,36 @@
       "clave": "caracas_terminal",
       "ciudad": "Caracas",
       "nombre": "Terminal nuevo 421",
-      "referencia": "Detrás de zona rental"
+      "referencia": "Detrás de zona rental",
+      "seleccionable": false
     },
     {
       "clave": "caracas_parque_miranda",
       "ciudad": "Caracas",
       "nombre": "Parque Miranda",
-      "referencia": "Estación del metro"
+      "referencia": "Estación del metro",
+      "seleccionable": false
     },
     {
       "clave": "caracas_altamira",
       "ciudad": "Caracas",
       "nombre": "Altamira Centro Plaza",
-      "referencia": "Centro comercial"
+      "referencia": "Centro comercial",
+      "seleccionable": false
     },
     {
       "clave": "caracas_plaza_venezuela",
       "ciudad": "Caracas",
       "nombre": "Plaza Venezuela Torre Polar",
-      "referencia": "Base de la torre Polar"
+      "referencia": "Base de la torre Polar",
+      "seleccionable": false
     },
     {
       "clave": "caracas_previsora",
       "ciudad": "Caracas",
       "nombre": "Plaza Venezuela Torre la Previsora",
-      "referencia": "Salida exclusiva de la Ruta del Ron"
+      "referencia": "Salida exclusiva de la Ruta del Ron",
+      "seleccionable": false
     }
   ],
   "tours": [
@@ -1558,8 +1563,8 @@
         "Traslado en unidades con aire acondicionado",
         "Hidratación constante + hielo en la playa",
         "Atención personalizada",
-        "Día 1: desayuno + bebida, traslado en lancha ida y vuelta, almuerzo playero + bebida, alojamiento en Hotel Mario con piscina, habitaciones con aire y baño privado, cena",
-        "Día 2: traslado en lancha ida y vuelta, desayuno + bebida, almuerzo + bebida",
+        "Día 1: desayuno + bebida, traslado en lancha ida y vuelta, almuerzo playero + bebida, alojamiento en Hotel Mario con piscina (habitaciones con aire y baño privado) y cena",
+        "Día 2 (retorno 4:00 p. m.): traslado en lancha ida y vuelta, desayuno + bebida y almuerzo + bebida — sin cena",
         "5 destinos a visitar: Cayo Sombrero y paseo a los Juanes, Tours (Cayo Pescadores, Punta Varadero y Cayo Muerto)"
       ],
       "no_incluye": [
@@ -1683,14 +1688,16 @@
       ],
       "incluye": [
         "Todo lo del plan básico",
-        "Comidas incluidas (desayunos, almuerzos y cenas del itinerario)"
+        "2 desayunos con bebida, 2 almuerzos con bebida y 1 cena con bebida",
+        "Día 2 (retorno domingo): desayuno y almuerzo — la cena es sólo hasta el día antes del retorno (el regreso es por la tarde)"
       ],
       "no_incluye": [
         "Consumos personales"
       ],
       "notas": [
         "El chat anuncia «todos los fines de semana» sin fechas concretas: se generaron las salidas de viernes desde el 13/11/2026 hasta el 15/01/2027. Confirmar el calendario antes de publicar.",
-        "Salida viernes 7:00 p. m."
+        "Salida viernes 7:00 p. m.",
+        "Conteo de comidas asumido por el patrón de estadía (el chat sólo dice «comidas incluidas»): confirmar con Escapate Tours."
       ]
     },
     {
@@ -1728,7 +1735,8 @@
       ],
       "incluye": [
         "Traslado ejecutivo",
-        "Todas las comidas: 2 desayunos (empanadas), 2 almuerzos (pescado frito o pollo frito) y 1 cena (perros calientes u hamburguesas)",
+        "Día 1 (sábado): desayuno (empanadas), almuerzo (pescado o pollo frito) y cena (perros calientes u hamburguesas)",
+        "Día 2 (domingo): desayuno (empanadas) y almuerzo (pescado o pollo frito) — retorno 4:00 p. m., sin cena",
         "Snack, brindis y vaso personal playero",
         "Traslado en lancha a los paseos",
         "Alojamiento en Posada Villa Paraíso con piscina, habitaciones privadas (algunas con vista al mar) y baño interno",
@@ -1789,7 +1797,8 @@
       ],
       "incluye": [
         "Traslado ejecutivo",
-        "Todas las comidas: 2 desayunos (empanadas), 2 almuerzos (pescado frito o pollo frito) y 1 cena (perros calientes u hamburguesas)",
+        "Día 1 (sábado): desayuno (empanadas), almuerzo (pescado o pollo frito) y cena (perros calientes u hamburguesas)",
+        "Día 2 (domingo): desayuno (empanadas) y almuerzo (pescado o pollo frito) — retorno 4:00 p. m., sin cena",
         "Snack, brindis y vaso personal playero",
         "Traslado en lancha a los paseos",
         "Alojamiento en Posada Villa Paraíso con piscina, habitaciones privadas y baño interno",
@@ -1847,7 +1856,8 @@
       ],
       "incluye": [
         "Traslado ejecutivo",
-        "Todas las comidas: 2 desayunos (empanadas), 2 almuerzos (pescado frito o pollo frito) y 1 cena (perros calientes u hamburguesas)",
+        "Día 1 (sábado): desayuno (empanadas), almuerzo (pescado o pollo frito) y cena (perros calientes u hamburguesas)",
+        "Día 2 (domingo): desayuno (empanadas) y almuerzo (pescado o pollo frito) — retorno 4:00 p. m., sin cena",
         "Snack, brindis y vaso personal playero",
         "Traslado en lancha a los paseos",
         "Alojamiento en Posada Villa Paraíso con piscina, habitaciones privadas y baño interno",
@@ -1904,7 +1914,8 @@
       ],
       "incluye": [
         "Traslado ejecutivo",
-        "Todas las comidas: 2 desayunos (empanadas), 2 almuerzos (pescado frito o pollo frito) y 1 cena (perros calientes u hamburguesas)",
+        "Día 1 (sábado): desayuno (empanadas), almuerzo (pescado o pollo frito) y cena (perros calientes u hamburguesas)",
+        "Día 2 (domingo): desayuno (empanadas) y almuerzo (pescado o pollo frito) — retorno 4:00 p. m., sin cena",
         "Snack, brindis y vaso personal playero",
         "Traslado en lancha a los paseos",
         "Alojamiento en Posada Villa Paraíso con piscina, habitaciones privadas y baño interno",
@@ -1964,7 +1975,9 @@
         "Traslado en lancha",
         "Brindis, suministro de hielo y meriendas",
         "Atención personalizada",
-        "3 desayunos, 3 almuerzos y 2 cenas"
+        "Día 1 (sábado): desayuno, almuerzo y cena",
+        "Día 2 (domingo): desayuno, almuerzo y cena",
+        "Día 3 (lunes): desayuno y almuerzo — retorno 3:00 p. m., sin cena"
       ],
       "no_incluye": [
         "Consumos personales",
@@ -2082,9 +2095,9 @@
       ],
       "incluye": [
         "Todo lo del plan básico",
-        "3 desayunos con bebida",
-        "3 almuerzos con bebida",
-        "2 cenas con bebida"
+        "Día 1: desayuno y almuerzo con bebida, cena con bebida",
+        "Día 2: desayuno y almuerzo con bebida, cena con bebida",
+        "Día 3 (retorno domingo): desayuno y almuerzo con bebida — sin cena"
       ],
       "no_incluye": [
         "Casa Ángel del Sol (REF 10)",
@@ -2134,7 +2147,9 @@
       ],
       "incluye": [
         "Traslado ejecutivo",
-        "Todas las comidas: 3 desayunos (empanadas), 3 almuerzos (pescado frito o pollo frito) y 2 cenas (perros calientes u hamburguesas)",
+        "Día 1 (viernes): desayuno (empanadas), almuerzo (pescado o pollo frito) y cena (perros calientes u hamburguesas)",
+        "Día 2 (sábado): desayuno (empanadas), almuerzo (pescado o pollo frito) y cena (perros calientes u hamburguesas)",
+        "Día 3 (domingo): desayuno (empanadas) y almuerzo (pescado o pollo frito) — retorno 4:00 p. m., sin cena",
         "Snack, brindis y vaso personal playero",
         "Traslado en lancha a los paseos",
         "Alojamiento en cabañas privadas en playa PuiPuy con baño interno",
@@ -2197,7 +2212,8 @@
       "incluye": [
         "Transporte ida y vuelta con aire acondicionado y Wi-Fi",
         "Estadía en excelente hotel en el centro de la ciudad con habitaciones privadas",
-        "Todas las comidas",
+        "3 desayunos con bebida, 3 almuerzos con bebida y 2 cenas con bebida",
+        "Día 3 (retorno): desayuno y almuerzo — la cena es sólo hasta el día antes del retorno (el regreso es a las 7:00 p. m.)",
         "Ruta interna",
         "Entrada al teleférico hasta la última estación",
         "Entrada a la Casa Encantada de Juan",
@@ -2230,7 +2246,8 @@
         "Debe entregar USD 20 en divisas para garantizar la entrada al teleférico (ya incluidos en el monto).",
         "Persona sola debe cancelar USD 50 adicionales por habitación privada (aplicar recargo).",
         "Niños a partir de 5 años pagan paquete completo; sólo desde 5 años suben a la última estación del teleférico.",
-        "No se hacen devoluciones; la reserva es compromiso de asistencia."
+        "No se hacen devoluciones; la reserva es compromiso de asistencia.",
+        "Conteo de comidas asumido por el patrón de estadía (el chat sólo dice «comidas incluidas»): confirmar con Escapate Tours."
       ]
     },
     {
@@ -2272,9 +2289,10 @@
         "Brazalete identificativo",
         "Hospedaje 3 noches en habitación matrimonial, triple o cuádruple",
         "Entrada pagada a los lugares (excepto parque temático, opcional)",
-        "4 desayunos típicos de la región + bebidas",
-        "4 almuerzos ejecutivos + bebidas",
-        "3 cenas tradicionales + bebidas",
+        "Día 1: desayuno típico + bebidas, almuerzo ejecutivo + bebidas y cena tradicional + bebidas",
+        "Día 2: desayuno típico + bebidas, almuerzo ejecutivo + bebidas y cena tradicional + bebidas",
+        "Día 3: desayuno típico + bebidas, almuerzo ejecutivo + bebidas y cena tradicional + bebidas",
+        "Día 4 (retorno): desayuno típico + bebidas y almuerzo ejecutivo + bebidas — sin cena",
         "Servicio de hidratación",
         "Apoyo fotográfico y material audiovisual",
         "Torta de cumpleañeros para compartir con el grupo",

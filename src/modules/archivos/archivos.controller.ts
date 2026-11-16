@@ -5,6 +5,7 @@ import { ApiError } from '../../common/errors';
 import { Roles, Public } from '../../common/decorators/roles.decorator';
 import { CurrentUser, UsuarioActual } from '../../common/decorators/current-user.decorator';
 import { ArchivosService } from './archivos.service';
+import { AuditoriaService } from '../auditoria/auditoria.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -19,6 +20,7 @@ const MIMES_OK = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/
 export class ArchivosController {
   constructor(
     private readonly archivosService: ArchivosService,
+    private readonly auditoria: AuditoriaService,
     @InjectRepository(Archivo) private readonly archivos: Repository<Archivo>,
   ) {}
 
@@ -74,8 +76,20 @@ export class ArchivosController {
 
   @Get(':id/url')
   @Roles('operador', 'superadmin', 'validador')
-  async obtenerUrl(@Param('id') id: string) {
+  async obtenerUrl(@Param('id') id: string, @CurrentUser() user: UsuarioActual) {
     const url = await this.archivosService.obtenerUrlFirmada(id);
+    // La foto del documento de identidad es un dato sensible: cada consulta
+    // de su URL firmada queda registrada en la auditoría (SPEC/SEG).
+    const archivo = await this.archivos.findOne({ where: { id } });
+    if (archivo?.proposito === 'documento_identidad') {
+      await this.auditoria.registrar({
+        actorTipo: 'usuario',
+        usuarioId: user.id,
+        entidad: 'archivo',
+        entidadId: id,
+        accion: 'archivo.foto_documento_consultada',
+      });
+    }
     return { url };
   }
 

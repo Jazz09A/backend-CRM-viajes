@@ -49,10 +49,19 @@ export class ReservasService {
       ]);
     }
 
+    // La reserva congela la versión publicada del formulario: así el panel
+    // puede traducir las respuestas (p. ej. «guatire_castillejo» →
+    // «Emporium Nuevo Castillejo») con las opciones de esa versión.
+    const formVersion = await this.formVersions.findOne({
+      where: { tour_id: fecha.tour_id, estado: 'publicada' },
+      order: { version: 'DESC' },
+    });
+
     const reserva = await this.reservas.save(
       this.reservas.create({
         ref_corta: this.generarRefCorta(),
         fecha_tour_id: fecha.id,
+        form_version_id: formVersion?.id ?? null,
         referencia_interna: dto.referencia_interna ?? null,
         estado: 'enlace_creado',
         estado_pago: 'sin_pago',

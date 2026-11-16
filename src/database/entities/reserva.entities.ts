@@ -176,6 +176,14 @@ export class Pasajero extends ConTimestamps {
 
   @Column({ type: 'uuid', nullable: true }) autorizacion_archivo_id?: string | null;
 
+  /**
+   * Foto del documento de identidad del pasajero (política de la agencia:
+   * verifica que los datos sean reales). Referencia lógica a `archivo.id`
+   * con proposito `documento_identidad`; se consulta con URL firmada y
+   * queda auditada.
+   */
+  @Column({ type: 'uuid', nullable: true }) documento_imagen_id?: string | null;
+
   @Column({ type: 'simple-json', default: () => "'{}'" }) respuestas!: Record<string, unknown>;
 
   @Column({ type: 'varchar', length: 30, nullable: true, transformer: IsoDateTransformer }) anonimizado_en?: Date | null;

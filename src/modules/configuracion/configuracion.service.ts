@@ -22,6 +22,9 @@ export interface PuntoSalidaDto {
   nombre?: string;
   hora?: string;
   referencia?: string | null;
+  ciudad?: string | null;
+  /** `false` = sólo referencia (p. ej. Caracas): no lo elige el cliente. */
+  seleccionable?: boolean;
   orden?: number;
   activo?: boolean;
 }
@@ -165,6 +168,8 @@ export class ConfiguracionService {
         nombre,
         hora,
         referencia: dto.referencia?.trim() || null,
+        ciudad: dto.ciudad?.trim() || null,
+        seleccionable: dto.seleccionable !== false,
         orden: dto.orden ?? (max ?? -1) + 1,
         activo: dto.activo !== false,
       }),
@@ -198,7 +203,9 @@ export class ConfiguracionService {
         punto.clave = clave;
       }
     }
-    if (dto.referencia !== undefined) punto.referencia = String(dto.referencia).trim() || null;
+    if (dto.referencia !== undefined) punto.referencia = dto.referencia == null ? null : String(dto.referencia).trim() || null;
+    if (dto.ciudad !== undefined) punto.ciudad = dto.ciudad == null ? null : String(dto.ciudad).trim() || null;
+    if (dto.seleccionable !== undefined) punto.seleccionable = Boolean(dto.seleccionable);
     if (dto.orden !== undefined) punto.orden = Number(dto.orden) || 0;
     if (dto.activo !== undefined) punto.activo = Boolean(dto.activo);
 

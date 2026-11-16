@@ -34,6 +34,11 @@ export interface CampoDef {
   valor_defecto?: unknown;
   /** Marca de origen para opciones dinámicas: `puntos_salida` usa el catálogo global. */
   fuente?: string;
+  /**
+   * Puntos del catálogo que NO se pueden elegir (p. ej. los de Caracas),
+   * agrupados por ciudad y mostrados sólo como referencia en el formulario.
+   */
+  puntos_referencia?: { ciudad: string; puntos: { clave: string; nombre: string; hora: string; referencia?: string | null }[] }[];
   /** Agrupación funcional; `comida` se oculta con el flag global de comidas. */
   grupo?: string;
 }

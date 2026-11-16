@@ -1,39 +1,4 @@
-import { IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
-
-export class AprobarPagoDto {
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  monto_validado?: number;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(300)
-  ajuste_motivo?: string;
-
-  @IsOptional()
-  confirmar_duplicado?: boolean;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(300)
-  duplicado_motivo?: string;
-}
-
-export class RechazarPagoDto {
-  @IsString()
-  @IsNotEmpty()
-  motivo_codigo!: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(300)
-  motivo_texto?: string;
-}
-
-export class SolicitarCorreccionDto {
-  @IsString()
-  texto!: string;
-}
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class ReembolsoDto {
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -62,9 +27,6 @@ export class RegistrarPagoAdminDto {
 
   @IsNumber({ maxDecimalPlaces: 2 })
   monto!: number;
-
-  @IsIn(['USD', 'VES', 'USDT'])
-  moneda!: 'USD' | 'VES' | 'USDT';
 
   @IsString()
   fecha_pago!: string;
