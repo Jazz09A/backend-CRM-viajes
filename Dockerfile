@@ -45,6 +45,10 @@ RUN npx playwright install --with-deps chromium \
 
 COPY --from=builder /app/dist ./dist
 COPY package.json ./
+# Catálogo de Escapate: también en el runner (lo consume importar-escapate
+# en el CMD de arranque; sólo existía en la etapa builder y el contenedor
+# final fallaba con «No existe el archivo de catálogo»).
+COPY --from=builder /app/catalogo-escapate.json ./
 
 # Volumen de archivos locales (comprobantes, firmas, vouchers).
 RUN mkdir -p /app/data && chown -R node:node /app/data
