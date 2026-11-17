@@ -992,7 +992,15 @@ export class AdminFxService {
     const anterior = r.fecha_tour_id;
     // Libera cupo anterior y retiene en destino (best-effort, dev).
     if (r.cupo_estado === 'retenido' || r.cupo_estado === 'vendido') {
-      await this.cupos.liberar(anterior, r.id, r.cupo_pasajeros, r.cupo_opciones, 'liberacion', undefined);
+      await this.cupos.liberar(
+        anterior,
+        r.id,
+        r.cupo_pasajeros,
+        r.cupo_opciones,
+        'liberacion',
+        undefined,
+        r.cupo_estado === 'vendido',
+      );
     }
     r.fecha_tour_id = destino.id;
     r.cupo_estado = 'retenido';

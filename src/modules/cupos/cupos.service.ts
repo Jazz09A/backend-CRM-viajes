@@ -81,7 +81,14 @@ export class CuposService {
     });
   }
 
-  /** Libera cupos retenidos o vendidos (cancelación, expiración). */
+  /**
+   * Libera cupos retenidos o vendidos (cancelación, expiración).
+   *
+   * `deVendidos` indica si los asientos liberados estaban VENDIDOS (reserva
+   * confirmada cancelada: baja `cupos_vendidos`) o sólo RETENIDOS (hold vencido
+   * o cancelado antes de pagar: baja `cupos_retenidos`). Descontar del contador
+   * equivocado roba asientos a otras reservas.
+   */
   async liberar(
     fechaId: string,
     reservaId: string,
@@ -89,23 +96,24 @@ export class CuposService {
     opciones: OpcionCupo[] = [],
     tipo: 'liberacion' | 'venta_liberada' = 'liberacion',
     requestId?: string,
+    deVendidos = false,
   ) {
     const d = this.driver;
     await this.ds.transaction(async (em) => {
+      const contadores = deVendidos
+        ? `cupos_vendidos = ${max2(d, `cupos_vendidos - ${ph(d, 0)}`, '0')}, cupos_retenidos = cupos_retenidos`
+        : `cupos_retenidos = ${max2(d, `cupos_retenidos - ${ph(d, 0)}`, '0')}, cupos_vendidos = cupos_vendidos`;
       await em.query(
-        `UPDATE fecha_tour
-         SET cupos_vendidos = CASE WHEN cupos_vendidos >= ${ph(d, 0)} THEN cupos_vendidos - ${ph(d, 1)} ELSE cupos_vendidos END,
-             cupos_retenidos = cupos_retenidos - CASE WHEN cupos_vendidos >= ${ph(d, 2)} THEN 0 ELSE ${ph(d, 3)} END
-         WHERE id = ${ph(d, 4)}`,
-        [n, n, n, n, fechaId],
+        `UPDATE fecha_tour SET ${contadores} WHERE id = ${ph(d, 1)}`,
+        [n, fechaId],
       );
       for (const op of opciones) {
+        const camposOpcion = deVendidos
+          ? `vendidos = ${max2(d, `vendidos - ${ph(d, 0)}`, '0')}, retenidos = retenidos`
+          : `retenidos = ${max2(d, `retenidos - ${ph(d, 0)}`, '0')}, vendidos = vendidos`;
         await em.query(
-          `UPDATE cupo_opcion
-           SET vendidos = CASE WHEN vendidos >= ${ph(d, 0)} THEN vendidos - ${ph(d, 1)} ELSE vendidos END,
-               retenidos = retenidos - CASE WHEN vendidos >= ${ph(d, 2)} THEN 0 ELSE ${ph(d, 3)} END
-           WHERE fecha_tour_id = ${ph(d, 4)} AND campo_id = ${ph(d, 5)} AND valor = ${ph(d, 6)}`,
-          [op.n, op.n, op.n, op.n, fechaId, op.campo_id, op.valor],
+          `UPDATE cupo_opcion SET ${camposOpcion} WHERE fecha_tour_id = ${ph(d, 1)} AND campo_id = ${ph(d, 2)} AND valor = ${ph(d, 3)}`,
+          [op.n, fechaId, op.campo_id, op.valor],
         );
       }
       await em.save(CupoMovimiento, {

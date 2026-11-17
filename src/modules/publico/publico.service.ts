@@ -252,8 +252,17 @@ export class PublicoService {
     }
   }
 
-  private validarVersion(ctx: Contexto, version?: number) {
-    if (typeof version === 'number' && version !== ctx.reserva.version) {
+  /**
+   * Refresca la ventana de inactividad (actividad del cliente): cada paso que
+   * guarda mantiene vivo el hold del cupo tomado al iniciar el registro.
+   */
+  private async tocarInactividad(reserva: Reserva): Promise<void> {
+    if (reserva.estado === 'en_registro') {
+      reserva.expira_en = await this.stateMachine.ventanaInactividad();
+    }
+  }
+
+  private validarVersion(ctx: Contexto, version?: number) {    if (typeof version === 'number' && version !== ctx.reserva.version) {
       throw new ApiError(409, 'VERSION_DESACTUALIZADA', 'Se actualizó en otro dispositivo. Revisamos tus datos.');
     }
   }
@@ -657,6 +666,7 @@ export class PublicoService {
 
     ctx.reserva.version += 1;
     ctx.reserva.ultima_actividad_en = new Date();
+    await this.tocarInactividad(ctx.reserva);
     await this.reservas.save(ctx.reserva);
     await this.sincronizarClientes(reserva.id);
     // Devuelve el id de la foto para que el cliente sepa que quedó guardada.
@@ -865,18 +875,18 @@ export class PublicoService {
     }
     await this.pasajeros.save(nuevos);
 
-    // Reajusta los cupos retenidos si cambió el tamaño del grupo con hold activo.
+    // Reajusta el hold si cambió el tamaño del grupo (retiene o libera con
+    // control de disponibilidad) y refresca la ventana de inactividad.
     const totalAnterior = ctx.pasajeros.length;
     if (
       ctx.reserva.cupo_estado === 'retenido' &&
-      ['pendiente_firma', 'pendiente_pago'].includes(ctx.reserva.estado) &&
       totalNuevo !== totalAnterior &&
       ctx.fecha.estado === 'publicada'
     ) {
-      const diferencia = totalNuevo - totalAnterior;
-      ctx.fecha.cupos_retenidos = Math.max(0, ctx.fecha.cupos_retenidos + diferencia);
-      ctx.reserva.cupo_pasajeros = Math.max(0, ctx.reserva.cupo_pasajeros + diferencia);
-      await this.fechas.save(ctx.fecha);
+      await this.stateMachine.ajustarHold(ctx.reserva, totalNuevo);
+    }
+    if (ctx.reserva.estado === 'en_registro') {
+      ctx.reserva.expira_en = await this.stateMachine.ventanaInactividad();
     }
 
     ctx.reserva.version += 1;
@@ -914,6 +924,7 @@ export class PublicoService {
     }
     reserva.version += 1;
     reserva.ultima_actividad_en = new Date();
+    await this.tocarInactividad(reserva);
     await this.reservas.save(reserva);
     return { version: reserva.version };
   }
@@ -1007,6 +1018,7 @@ export class PublicoService {
       ctx.reserva.pasos_completados = { ...(ctx.reserva.pasos_completados ?? {}), [paso]: new Date().toISOString() };
       ctx.reserva.version += 1;
       ctx.reserva.ultima_actividad_en = new Date();
+      await this.tocarInactividad(ctx.reserva);
       await this.reservas.save(ctx.reserva);
     }
 
@@ -1014,6 +1026,7 @@ export class PublicoService {
       ctx.reserva.pasos_completados = { ...(ctx.reserva.pasos_completados ?? {}), resumen: new Date().toISOString() };
       ctx.reserva.version += 1;
       ctx.reserva.ultima_actividad_en = new Date();
+      await this.tocarInactividad(ctx.reserva);
       await this.reservas.save(ctx.reserva);
     }
 
@@ -1021,6 +1034,7 @@ export class PublicoService {
       ctx.reserva.terminos_version_id = String(payload['versionTerminosId']);
       ctx.reserva.version += 1;
       ctx.reserva.ultima_actividad_en = new Date();
+      await this.tocarInactividad(ctx.reserva);
       await this.reservas.save(ctx.reserva);
     }
 

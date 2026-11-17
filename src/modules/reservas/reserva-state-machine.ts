@@ -68,10 +68,18 @@ export class ReservaStateMachine {
     iniciar_registro: {
       desde: ['enlace_creado'],
       hacia: 'en_registro',
-      efectos: async (em, r) => {
-        const inactividad = Number((await this.config.obtener('inactividad_registro_h')) ?? 72);
+      efectos: async (em, r, ctx) => {
+        // El cupo queda reservado desde que el cliente empieza: retiene el
+        // del titular con la ventana de inactividad (corta). Si no hay
+        // disponibilidad se continúa sin hold (el resumen lo validará).
+        const ok = await this.cupos.retener(r.fecha_tour_id, r.id, 1, [], 'hold', ctx.requestId);
+        if (ok) {
+          r.cupo_estado = 'retenido';
+          r.cupo_pasajeros = 1;
+          r.cupo_opciones = [];
+        }
         r.paso_registro = 'titular';
-        r.expira_en = new Date(Date.now() + inactividad * 3600 * 1000);
+        r.expira_en = await this.ventanaInactividad();
         await em.save(Reserva, r);
       },
     },
@@ -79,7 +87,9 @@ export class ReservaStateMachine {
       desde: ['en_registro'],
       hacia: 'en_registro',
       efectos: async (em, r) => {
+        // La actividad del cliente refresca la ventana de inactividad.
         r.ultima_actividad_en = new Date();
+        r.expira_en = await this.ventanaInactividad();
         await em.save(Reserva, r);
       },
     },
@@ -90,14 +100,55 @@ export class ReservaStateMachine {
         // Toma el hold de cupos (D-03) — se ejecuta dentro de la tx.
         const n = Number(ctx.datos?.cupo_pasajeros ?? r.cupo_pasajeros ?? 1);
         const opciones = (ctx.datos?.cupo_opciones ?? r.cupo_opciones ?? []) as OpcionCupo[];
-        const ok = await this.cupos.retener(r.fecha_tour_id, r.id, n, opciones, 'hold', ctx.requestId);
-        if (!ok) {
-          throw ApiError.validacion('No hay cupo disponible para esta fecha', [
-            { campo: 'cupos', codigo: 'SIN_CUPO', mensaje: 'Sin cupo disponible' },
-          ]);
+        const opcionesNuevas = opciones.filter(
+          (op) => !(r.cupo_opciones ?? []).some((prev) => prev.campo_id === op.campo_id && prev.valor === op.valor),
+        );
+        if (r.cupo_estado === 'retenido') {
+          // El hold ya está (se tomó al iniciar el registro): se ajusta al
+          // tamaño del grupo y se agregan los cupos por opción nuevos.
+          const diff = n - (r.cupo_pasajeros ?? 0);
+          if (diff > 0) {
+            const okExtra = await this.cupos.retener(
+              r.fecha_tour_id,
+              r.id,
+              diff,
+              opcionesNuevas,
+              'ajuste_hold',
+              ctx.requestId,
+            );
+            if (!okExtra) {
+              throw ApiError.validacion('No hay cupo disponible para esta fecha', [
+                { campo: 'cupos', codigo: 'SIN_CUPO', mensaje: 'Sin cupo disponible' },
+              ]);
+            }
+          } else {
+            if (diff < 0) await this.cupos.liberar(r.fecha_tour_id, r.id, -diff, [], 'liberacion');
+            if (opcionesNuevas.length) {
+              const okOp = await this.cupos.retener(
+                r.fecha_tour_id,
+                r.id,
+                0,
+                opcionesNuevas,
+                'ajuste_hold',
+                ctx.requestId,
+              );
+              if (!okOp) {
+                throw ApiError.validacion('No hay cupo disponible para esta fecha', [
+                  { campo: 'cupos', codigo: 'SIN_CUPO', mensaje: 'Sin cupo disponible' },
+                ]);
+              }
+            }
+          }
+        } else {
+          const ok = await this.cupos.retener(r.fecha_tour_id, r.id, n, opciones, 'hold', ctx.requestId);
+          if (!ok) {
+            throw ApiError.validacion('No hay cupo disponible para esta fecha', [
+              { campo: 'cupos', codigo: 'SIN_CUPO', mensaje: 'Sin cupo disponible' },
+            ]);
+          }
+          r.cupo_estado = 'retenido';
         }
         const holdHoras = Number((await this.config.obtener('hold_horas')) ?? 24);
-        r.cupo_estado = 'retenido';
         r.cupo_pasajeros = n;
         r.cupo_opciones = opciones;
         r.resumen_confirmado_en = new Date();
@@ -111,16 +162,17 @@ export class ReservaStateMachine {
       desde: ['pendiente_firma', 'pendiente_pago'],
       hacia: 'en_registro',
       efectos: async (em, r) => {
-        // Invalida la firma vigente (T4); el hold se conserva y se renueva.
+        // Invalida la firma vigente (T4); el hold se conserva y el plazo
+        // vuelve a la ventana de inactividad mientras edita.
         const d = this.ds.options.type as string;
+        const bitF = (v: boolean) => (d === 'postgres' ? v : v ? 1 : 0);
         await em.query(
           `UPDATE firma SET vigente = ${ph(d, 0)}, invalidada_en = ${ph(d, 1)}, invalidada_motivo = ${ph(d, 2)} WHERE reserva_id = ${ph(d, 3)} AND vigente = ${ph(d, 4)}`,
-          [0, new Date(), 'edicion_material', r.id, 1],
+          [bitF(false), new Date().toISOString(), 'edicion_material', r.id, bitF(true)],
         );
-        const holdHoras = Number((await this.config.obtener('hold_horas')) ?? 24);
         r.paso_registro = 'titular';
         r.resumen_confirmado_en = null;
-        r.expira_en = new Date(Date.now() + holdHoras * 3600 * 1000);
+        r.expira_en = await this.ventanaInactividad();
         await em.save(Reserva, r);
       },
     },
@@ -164,7 +216,15 @@ export class ReservaStateMachine {
       hacia: 'cancelada',
       efectos: async (em, r, ctx) => {
         if (r.cupo_estado === 'retenido' || r.cupo_estado === 'vendido') {
-          await this.cupos.liberar(r.fecha_tour_id, r.id, r.cupo_pasajeros, r.cupo_opciones, 'liberacion', undefined);
+          await this.cupos.liberar(
+            r.fecha_tour_id,
+            r.id,
+            r.cupo_pasajeros,
+            r.cupo_opciones,
+            'liberacion',
+            undefined,
+            r.cupo_estado === 'vendido',
+          );
           r.cupo_estado = 'liberado';
         }
         r.cancelada_en = new Date();
@@ -175,14 +235,15 @@ export class ReservaStateMachine {
         const d = this.ds.options.type as string;
         await em.query(
           `UPDATE enlace_reserva SET estado = ${ph(d, 0)}, revocado_en = ${ph(d, 1)} WHERE reserva_id = ${ph(d, 2)} AND estado IN (${ph(d, 3)}, ${ph(d, 4)})`,
-          ['revocado', new Date(), r.id, 'vigente', 'usado'],
+          ['revocado', new Date().toISOString(), r.id, 'vigente', 'usado'],
         );
         await em.save(Reserva, r);
         // Invalidar vouchers vigentes: el QR debe reportar la cancelación.
         const dV = this.ds.options.type as string;
+        const bit = (v: boolean) => (dV === 'postgres' ? v : v ? 1 : 0);
         await em.query(
           `UPDATE voucher SET vigente = ${ph(dV, 0)}, estado = ${ph(dV, 1)} WHERE reserva_id = ${ph(dV, 2)} AND vigente = ${ph(dV, 3)}`,
-          [false, 'invalidado', r.id, true],
+          [bit(false), 'invalidado', r.id, bit(true)],
         );
         await this.outbox(em, 'reserva.cancelada', { reserva_id: r.id });
       },
@@ -199,7 +260,7 @@ export class ReservaStateMachine {
         const d = this.ds.options.type as string;
         await em.query(
           `UPDATE enlace_reserva SET estado = ${ph(d, 0)}, revocado_en = ${ph(d, 1)} WHERE reserva_id = ${ph(d, 2)} AND estado IN (${ph(d, 3)}, ${ph(d, 4)})`,
-          ['revocado', new Date(), r.id, 'vigente', 'usado'],
+          ['revocado', new Date().toISOString(), r.id, 'vigente', 'usado'],
         );
         await em.save(Reserva, r);
       },
@@ -276,6 +337,37 @@ export class ReservaStateMachine {
 
       return reserva;
     });
+  }
+
+  /**
+   * Ventana de inactividad del registro (config `minutos_inactividad`): el
+   * plazo corto con el que el cupo queda reservado mientras el cliente llena
+   * el formulario. Cada actividad la refresca.
+   */
+  async ventanaInactividad(): Promise<Date> {
+    const minutos = Number((await this.config.obtener('minutos_inactividad')) ?? 30);
+    return new Date(Date.now() + minutos * 60_000);
+  }
+
+  /**
+   * Ajusta el hold al tamaño real del grupo (crece o decrece), con control de
+   * disponibilidad. Lanza `SIN_CUPO` si no alcanza para crecer.
+   */
+  async ajustarHold(reserva: Reserva, total: number, requestId?: string): Promise<void> {
+    if (reserva.cupo_estado !== 'retenido' || reserva.fecha_tour_id == null) return;
+    const diff = total - (reserva.cupo_pasajeros ?? 0);
+    if (diff === 0) return;
+    if (diff > 0) {
+      const ok = await this.cupos.retener(reserva.fecha_tour_id, reserva.id, diff, [], 'ajuste_hold', requestId);
+      if (!ok) {
+        throw ApiError.validacion('No hay cupo disponible para esta fecha', [
+          { campo: 'cupos', codigo: 'SIN_CUPO', mensaje: 'Sin cupo disponible' },
+        ]);
+      }
+    } else {
+      await this.cupos.liberar(reserva.fecha_tour_id, reserva.id, -diff, [], 'liberacion');
+    }
+    reserva.cupo_pasajeros = total;
   }
 
   /** Genera enlace de acceso para una reserva (token en claro solo una vez). */
