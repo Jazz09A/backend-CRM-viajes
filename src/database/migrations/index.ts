@@ -4,6 +4,7 @@ import { PuntoSalidaSeleccionable1794026342822 } from './1794026342822-PuntoSali
 import { PasajeroDocumentoImagen1794026342823 } from './1794026342823-PasajeroDocumentoImagen';
 import { PagoNaceAprobado1794026342824 } from './1794026342824-PagoNaceAprobado';
 import { EdadesInfanteGratis1794026342825 } from './1794026342825-EdadesInfanteGratis';
+import { TourDocumento1794026342826 } from './1794026342826-TourDocumento';
 
 /**
  * Migraciones versionadas (spec: producción usa migraciones, no synchronize).
@@ -19,4 +20,5 @@ export const MIGRATIONS = [
   PasajeroDocumentoImagen1794026342823,
   PagoNaceAprobado1794026342824,
   EdadesInfanteGratis1794026342825,
+  TourDocumento1794026342826,
 ];

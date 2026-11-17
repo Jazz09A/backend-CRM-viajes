@@ -221,6 +221,56 @@ export class AdminFxController {
     return this.service.cambiarEstadoTour(id, body.estado, user.id);
   }
 
+  // ── documento de tour (el catálogo como contrato) ──────────────────────
+
+  @Get('tours/:id/documento')
+  documentoTour(@Param('id') id: string) {
+    return this.service.documentoTour(id);
+  }
+
+  @Post('tours/documento')
+  @Roles('superadmin', 'operador')
+  crearDesdeDocumento(@Body() body: Record<string, unknown>, @CurrentUser() user: UsuarioActual) {
+    return this.service.guardarDocumento(null, body, user.id);
+  }
+
+  @Put('tours/:id/documento')
+  @Roles('superadmin', 'operador')
+  guardarDocumento(@Param('id') id: string, @Body() body: Record<string, unknown>, @CurrentUser() user: UsuarioActual) {
+    return this.service.guardarDocumento(id, body, user.id);
+  }
+
+  @Post('tours/:id/fechas-masivo')
+  @Roles('superadmin', 'operador')
+  fechasMasivo(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.service.fechasMasivo(id, body);
+  }
+
+  @Post('tours/:id/formulario/plantilla')
+  @Roles('superadmin', 'operador')
+  formularioPlantilla(@Param('id') id: string, @CurrentUser() user: UsuarioActual) {
+    return this.service.formularioPlantilla(id, user.id);
+  }
+
+  @Put('tours/:id/puntos-abordaje')
+  @Roles('superadmin', 'operador')
+  guardarPuntos(
+    @Param('id') id: string,
+    @Body() body: { puntos: { clave: string; hora: string; confirmar_hora?: boolean }[] },
+  ) {
+    return this.service.guardarPuntos(id, body);
+  }
+
+  @Get('tours/:id/requisitos')
+  requisitosTour(@Param('id') id: string) {
+    return this.service.requisitosTour(id);
+  }
+
+  @Get('catalogo/documento')
+  exportarCatalogo() {
+    return this.service.exportarCatalogo();
+  }
+
   @Get('fechas')
   fechasTodas() {
     return this.service.fechasTodas();
@@ -281,6 +331,12 @@ export class AdminFxController {
   @Roles('superadmin', 'operador')
   guardarFormulario(@Param('tourId') tourId: string, @Body() body: { definicion: { campos: Record<string, unknown>[] } }, @CurrentUser() user: UsuarioActual) {
     return this.service.guardarFormulario(tourId, body, user.id);
+  }
+
+  @Post('tours/:tourId/formulario/publicar')
+  @Roles('superadmin', 'operador')
+  publicarFormulario(@Param('tourId') tourId: string, @CurrentUser() user: UsuarioActual) {
+    return this.service.publicarFormulario(tourId, user.id);
   }
 
   // ── salidas ───────────────────────────────────────────────────────────

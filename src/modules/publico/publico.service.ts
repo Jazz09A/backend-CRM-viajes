@@ -23,6 +23,7 @@ import {
   TasaCambio,
   Tour,
   TourFormVersion,
+  TourPuntoAbordaje,
   PuntoSalida,
   Voucher,
 } from '../../database/entities';
@@ -86,6 +87,8 @@ interface Contexto {
   tarifas: Tarifa[];
   cupos: CupoOpcion[];
   puntos: PuntoSalida[];
+  /** Puntos de abordaje del tour (con su hora propia). */
+  puntosTour: TourPuntoAbordaje[];
   firma: Firma | null;
   voucher: Voucher | null;
   pagos: Pago[];
@@ -111,6 +114,7 @@ export class PublicoService {
     @InjectRepository(Tour) private readonly tours: Repository<Tour>,
     @InjectRepository(TourFormVersion) private readonly formVersions: Repository<TourFormVersion>,
     @InjectRepository(PuntoSalida) private readonly puntos: Repository<PuntoSalida>,
+    @InjectRepository(TourPuntoAbordaje) private readonly puntosTour: Repository<TourPuntoAbordaje>,
     @InjectRepository(CupoOpcion) private readonly cuposOpcion: Repository<CupoOpcion>,
     @InjectRepository(Firma) private readonly firmas: Repository<Firma>,
     @InjectRepository(Idempotencia) private readonly idempotencias: Repository<Idempotencia>,
@@ -186,6 +190,11 @@ export class PublicoService {
       // Catálogo global de puntos de salida (compartido por todos los tours).
       this.puntos.find({ where: { activo: true }, order: { orden: 'ASC' } }),
     ]);
+    // Puntos del tour: la hora de recogida es la de este viaje.
+    const puntosTour = await this.puntosTour.find({
+      where: { tour_id: tour.id, activo: true },
+      order: { orden: 'ASC' },
+    });
     const formVersion = reserva.form_version_id
       ? await this.formVersions.findOne({ where: { id: reserva.form_version_id } })
       : await this.formVersions.findOne({ where: { tour_id: tour.id, estado: 'publicada' } });
@@ -204,6 +213,7 @@ export class PublicoService {
       tarifas,
       cupos,
       puntos,
+      puntosTour,
       firma,
       voucher,
       pagos,
@@ -481,7 +491,7 @@ export class PublicoService {
     return {
       reserva: base,
       progreso,
-      tour: tourPublico(ctx.tour, ctx.puntos, ctx.formVersion?.id ?? null, null),
+      tour: tourPublico(ctx.tour, ctx.puntos, ctx.formVersion?.id ?? null, null, ctx.puntosTour),
       fecha: fechaPublica(ctx.fecha, ctx.cupos),
       tarifas: ctx.tarifas.map((t) => this.tarifaSinPrecio(t)),
       ...(ctx.politica ? { politica_cancelacion: politicaPublica(ctx.politica) } : {}),

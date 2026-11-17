@@ -12,7 +12,35 @@ export type EstadoFormVersion = 'borrador' | 'publicada' | 'archivada';
 export class Tour extends ConTimestamps {
   @Column('varchar', { length: 160 }) nombre!: string;
 
+  /**
+   * Clave estable del catálogo (slug). Es la identidad con la que se
+   * sincroniza el documento de tour (`catalogo-escapate.json`): si no se
+   * manda, se deriva del nombre.
+   */
+  @Index({ unique: true })
+  @Column('varchar', { length: 80, nullable: true }) clave?: string | null;
+
   @Column('varchar', { length: 20 }) tipo!: TipoTour;
+
+  /** Región / destino del tour (Higuerote, Chuspa, Mérida…). */
+  @Column('varchar', { length: 80, nullable: true }) familia?: string | null;
+
+  /** Duración del viaje en días y noches (la duración es dato, no texto). */
+  @Column({ type: 'int', nullable: true }) duracion_dias?: number | null;
+
+  @Column({ type: 'int', nullable: true }) duracion_noches?: number | null;
+
+  /** Hora de salida del tour (las salidas la heredan si no se indica otra). */
+  @Column('varchar', { length: 5, nullable: true }) hora_salida?: string | null;
+
+  /** Cupos que ofrece el tour por salida (40 full day / 24 multi-día). */
+  @Column({ type: 'int', nullable: true }) cupos?: number | null;
+
+  /** Monto de la reserva por persona que fija el catálogo (20/50/75/100). */
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true }) reserva_usd?: string | null;
+
+  /** Avisos internos del catálogo (nunca se muestran al cliente). */
+  @Column({ type: 'simple-json', default: () => "'[]'" }) notas!: string[];
 
   @Column({ type: 'text', nullable: true }) descripcion?: string | null;
 
@@ -47,17 +75,44 @@ export class TourPuntoAbordaje extends ConTimestamps {
   @Index()
   @Column('uuid') tour_id!: string;
 
+  /** Clave del catálogo global de puntos (`punto_salida.clave`). */
   @Column('varchar', { length: 40 }) clave!: string;
 
   @Column('varchar', { length: 160 }) nombre!: string;
 
+  /** Hora de recogida **de este tour** (no la del catálogo global). */
   @Column('varchar', { length: 5 }) hora!: string; // HH:MM
+
+  /**
+   * `true` = la hora se confirma después (Caracas: «punto por confirmar»).
+   */
+  @Column({ type: 'boolean', default: false }) confirmar_hora!: boolean;
 
   @Column({ type: 'varchar', nullable: true }) referencia?: string | null;
 
   @Column({ type: 'int', default: 0 }) orden!: number;
 
   @Column({ type: 'boolean', default: true }) activo!: boolean;
+}
+
+/**
+ * Matriz de precios **del tour** (plantilla).
+ *
+ * Cada salida (`fecha_tour`) recibe su copia congelada en `tarifa` al
+ * crearse, de modo que cambiar la matriz no altera las reservas ya hechas.
+ */
+@Entity('tour_precio')
+export class TourPrecio extends ConTimestamps {
+  @Index()
+  @Column('uuid') tour_id!: string;
+
+  @Column('varchar', { length: 20 }) categoria!: CategoriaPasajero;
+
+  @Column({ type: 'int' }) edad_min!: number;
+
+  @Column({ type: 'int' }) edad_max!: number;
+
+  @Column({ type: 'decimal', precision: 12, scale: 2 }) precio_usd!: string;
 }
 
 /**

@@ -4,6 +4,7 @@ import {
   IsIn,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   Matches,
@@ -19,6 +20,52 @@ export class CrearTourDto {
 
   @IsIn(['full_day', 'fin_de_semana', 'multi_dia'])
   tipo!: TipoTour;
+
+  /** Clave estable del catálogo (slug). Si no se manda, se deriva del nombre. */
+  @IsOptional()
+  @IsString()
+  clave?: string;
+
+  /** Región o destino del tour (Higuerote, Chuspa, Mérida…). */
+  @IsOptional()
+  @IsString()
+  familia?: string;
+
+  /** Duración del viaje en días y noches. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(30)
+  duracion_dias?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(30)
+  duracion_noches?: number;
+
+  /** Hora de salida del tour (las salidas la heredan). */
+  @IsOptional()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  hora_salida?: string;
+
+  /** Cupos que ofrece el tour por salida. */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  cupos?: number;
+
+  /** Monto de la reserva por persona que fija el catálogo. */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  reserva_usd?: number;
+
+  /** Avisos internos del catálogo (no se muestran al cliente). */
+  @IsOptional()
+  @IsArray()
+  notas?: string[];
 
   @IsOptional()
   @IsString()
@@ -81,6 +128,11 @@ export class PuntoAbordajeDto {
 
   @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
   hora!: string;
+
+  /** `true` = la hora se confirma después (Caracas: «punto por confirmar»). */
+  @IsOptional()
+  @IsBoolean()
+  confirmar_hora?: boolean;
 
   @IsOptional()
   @IsString()

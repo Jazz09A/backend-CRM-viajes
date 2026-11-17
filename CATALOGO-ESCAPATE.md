@@ -3,12 +3,18 @@
 Carga del catálogo de **Escapate Tours** (transcrito del chat de WhatsApp del
 06/11/2026) en el sistema de reservas.
 
+> **El catálogo es el contrato.** La forma de `catalogo-escapate.json` es
+> también la del *documento de tour* que usa el panel (el alta de tours) y la
+> que devuelve la API. Lo que se agrega desde la UI se guarda con esta misma
+> forma.
+
 ## Archivos
 
 | Archivo | Qué es |
 | --- | --- |
 | `catalogo-escapate.json` | **Fuente de verdad**. Catálogo completo con tours, fechas, precios, inclusiones, políticas, términos y anomalías detectadas. |
-| `src/database/importar-escapate.ts` | Importador idempotente que carga el JSON en la base de datos. |
+| `src/modules/catalogo/documento.ts` | **Lógica compartida**: `aplicarCatalogo` (CLI) y `aplicarDocumentoTour` (panel) con las mismas reglas de mapeo; `formularioBase` (plantilla de formulario). |
+| `src/database/importar-escapate.ts` | Importador idempotente por CLI: lee el JSON y llama a la lógica compartida. |
 
 ## Uso
 
@@ -23,12 +29,64 @@ npm run importar:escapate -- --file=mi-catalogo.json     # otro catálogo
 
 El importador es **idempotente**: se puede reejecutar sin duplicar nada.
 
-- Tour → se identifica por `nombre`.
+- Tour → se identifica por `clave` (y por `nombre` como respaldo).
 - Fecha → por (`tour_id`, `fecha_salida`).
 - Tarifa → por (`fecha_tour_id`, `categoria`).
 
 Al terminar imprime el informe de lo creado/actualizado y las **anomalías del
 chat** que requieren revisión.
+
+## El documento de tour
+
+La API y el panel hablan la misma forma que el JSON:
+
+```jsonc
+{
+  "clave": "chuspa-playa-caribe",
+  "nombre": "Playa Caribe · Chuspa",
+  "tipo": "full_day",
+  "duracion": { "dias": 1, "noches": 0 },
+  "familia": "Chuspa",
+  "politica": "full_day",       // clave de Configuración → políticas
+  "terminos": "escapate-v1",    // clave de Configuración → términos
+  "hora_salida": "06:00",
+  "reserva_usd": 20,
+  "cupos": 40,
+  "descripcion": "…",
+  "puntos": [ { "clave": "guatire_castillejo", "hora": "06:00" } ],
+  "precios": { "adulto": 48, "nino": 48, "tercera_edad": 48, "infante": 0 },
+  "fechas": [ "2026-12-20" ],
+  "incluye": [ "…" ],
+  "no_incluye": [ "…" ],
+  "itinerario": [ { "hora": "", "titulo": "Salida", "detalle": "…" } ],
+  "notas": [ "…" ]
+}
+```
+
+Dónde vive cada cosa:
+
+| Campo | Dónde se guarda |
+| --- | --- |
+| `clave`, `familia`, `duracion_*`, `hora_salida`, `cupos`, `reserva_usd`, `notas` | columnas de `tour` |
+| `descripcion`, `itinerario`, `incluye`, `no_incluye` | columnas `simple-json` de `tour` |
+| `politica`, `terminos` | **claves**: se resuelven contra `politica_cancelacion` y `plantilla_terminos` (Configuración) |
+| `puntos[]` | `tour_punto_abordaje` (la **hora es de este tour**, no la del catálogo global) |
+| `precios{}` | `tour_precio` (plantilla del tour); cada salida recibe su copia congelada en `tarifa` |
+| `fechas[]` | `fecha_tour` (+ sus 4 `tarifa`) |
+| `itinerario[].hora` | **opcional**: el catálogo transcribe la hora dentro del `detalle` |
+
+### Endpoints del documento (panel)
+
+| Endpoint | Qué hace |
+| --- | --- |
+| `GET /adminfx/tours/{id}/documento` | Devuelve el documento del tour |
+| `POST /adminfx/tours/documento` | Crea un tour a partir de su documento |
+| `PUT /adminfx/tours/{id}/documento` | Guarda el documento (datos, puntos, precios, notas…) |
+| `POST /adminfx/tours/{id}/fechas-masivo` | Crea N salidas + sus 4 tarifas (fechas explícitas o recurrentes) |
+| `POST /adminfx/tours/{id}/formulario/plantilla` | Publica el formulario base del tour |
+| `PUT /adminfx/tours/{id}/puntos-abordaje` | Guarda el horario de recogida de cada punto |
+| `GET /adminfx/tours/{id}/requisitos` | Requisitos de activación (los calcula el servidor) |
+| `GET /adminfx/catalogo/documento` | Exporta todo el catálogo con esta misma forma |
 
 ## Qué se carga
 
@@ -80,18 +138,23 @@ Efectos colaterales del importador:
    especiales (3-4 años al 50 % en Mérida, niños de 3 años gratis en Mérida
    4d/3n) se resuelven con ajuste manual.
 5. **Cupos.** El chat no los publica: 40 por salida en full day y 24 en
-   hospedaje/multi-día. Si dos planes salen en el mismo bus, hay que repartir
-   el cupo total entre ellos.
+   hospedaje/multi-día **salvo indicación del tour** (Colonia Tovar y la Ruta
+   del Ron son full day con 24). Si dos planes salen en el mismo bus, hay que
+   repartir el cupo total entre ellos.
 6. **Fecha de salida = día en que sale el bus.** En los 18 tours con «salida
    la noche anterior» la fecha guardada es la de la salida (ej. el viaje del
    sábado 5 de diciembre sale el viernes 4 a las 9 p. m.). Así el corte de
    venta, el hold y el voucher son coherentes. El día de actividad queda
    anotado en las notas del tour.
 7. **Hora de salida = primer punto de abordaje** del tour. La hora exacta de
-   cada punto (Guatire, Guarenas, Caracas) queda en los puntos de abordaje del
-   tour y en su itinerario.
+   cada punto (Guatire, Guarenas, Caracas) queda en `tour_punto_abordaje`
+   (**por tour**) y en su itinerario. **No hay una hora global válida**: el
+   mismo punto se recoge a distinta hora según el viaje (`guatire_kiosco` a
+   las 23:45 y `guatire_castillejo` a las 21:00).
 8. **Formulario publicado por tour.** Sin formulario publicado el tour no se
-   puede activar; el importador lo publica siempre (v1).
+   puede activar; el importador lo publica siempre (v1) con la plantilla
+   base: punto de abordaje, almuerzo (si el tour incluye comidas), alergias y
+   comentarios.
 9. **Comidas de las estadías.** Los full days incluyen desayuno y almuerzo.
    Las estadías incluyen desayuno, almuerzo y cena, y **la cena se sirve sólo
    hasta el día antes del retorno** (la salida de regreso es por la tarde):
@@ -104,6 +167,11 @@ Efectos colaterales del importador:
     `form_version_id` la versión publicada del formulario: así el panel
     traduce las respuestas («guatire_castillejo» → «Emporium Nuevo
     Castillejo») y el voucher usa ese snapshot.
+11. **Caracas es «punto por confirmar».** Los puntos reales de Caracas
+    (`caracas_terminal`, `caracas_altamira`…) quedan como **referencia**: el
+    cliente elige la pseudo-opción «Caracas — punto por confirmar» y el
+    punto exacto se confirma por el grupo de viaje. El tour marca esos
+    puntos con `confirmar_hora = true`.
 
 ## Anomalías del chat
 

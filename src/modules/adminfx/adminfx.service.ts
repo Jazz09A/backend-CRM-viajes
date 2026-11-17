@@ -26,6 +26,7 @@ import {
   Tarifa,
   Tour,
   TourFormVersion,
+  TourPuntoAbordaje,
   PuntoSalida,
   Usuario,
   Voucher,
@@ -41,6 +42,7 @@ import { ConfiguracionService } from '../configuracion/configuracion.service';
 import { CuposService } from '../cupos/cupos.service';
 import { FechasService } from '../fechas/fechas.service';
 import { ToursService } from '../tours/tours.service';
+import { CatalogoService } from '../catalogo/catalogo.service';
 import { calcularPrecioAdministrado } from '../reservas/domain';
 import {
   CATEGORIA_A_BE,
@@ -88,6 +90,7 @@ export class AdminFxService {
     @InjectRepository(CupoOpcion) private readonly cuposOpcion: Repository<CupoOpcion>,
     @InjectRepository(Tour) private readonly tourRepo: Repository<Tour>,
     @InjectRepository(PuntoSalida) private readonly puntos: Repository<PuntoSalida>,
+    @InjectRepository(TourPuntoAbordaje) private readonly puntosTour: Repository<TourPuntoAbordaje>,
     @InjectRepository(TourFormVersion) private readonly formVersions: Repository<TourFormVersion>,
     @InjectRepository(MetodoPago) private readonly metodos: Repository<MetodoPago>,
     @InjectRepository(Pago) private readonly pagoRepo: Repository<Pago>,
@@ -112,6 +115,7 @@ export class AdminFxService {
     private readonly cupos: CuposService,
     private readonly fechasService: FechasService,
     private readonly toursService: ToursService,
+    private readonly catalogoService: CatalogoService,
     private readonly archivosService: ArchivosService,
   ) {}
 
@@ -311,8 +315,13 @@ export class AdminFxService {
 
   private async tourFe(t: Tour): Promise<Record<string, unknown>> {
     // Los puntos de salida son un catálogo global (Guatire, Guarenas,
-    // Caracas…): el tour los muestra, no los administra.
+    // Caracas…), pero **la hora de recogida es la de cada tour**: el mismo
+    // punto se recoge a distinta hora según el viaje.
     const puntos = await this.puntos.find({ where: { activo: true }, order: { orden: 'ASC' } });
+    const puntosTour = await this.puntosTour.find({
+      where: { tour_id: t.id, activo: true },
+      order: { orden: 'ASC' },
+    });
     const fv = await this.ultimasVersionesForm();
     const version = fv.get(t.id);
     const termVersion = t.plantilla_terminos_id
@@ -321,7 +330,22 @@ export class AdminFxService {
           order: { version: 'DESC' },
         })
       : null;
-    return tourPublico(t, puntos, version?.id ?? null, termVersion?.id ?? null);
+    const base = tourPublico(t, puntos, version?.id ?? null, termVersion?.id ?? null, puntosTour);
+    return {
+      ...base,
+      clave: t.clave ?? '',
+      familia: t.familia ?? '',
+      duracion_dias: t.duracion_dias ?? null,
+      duracion_noches: t.duracion_noches ?? null,
+      hora_salida: t.hora_salida ?? '',
+      cupos: t.cupos ?? null,
+      reserva_usd: t.reserva_usd === null || t.reserva_usd === undefined ? null : Number(t.reserva_usd),
+      notas: t.notas ?? [],
+      requiere_autorizacion_menores: t.requiere_autorizacion_menores,
+      documento_menores: t.documento_menores,
+      max_pasajeros_reserva: t.max_pasajeros_reserva ?? null,
+      version: t.version,
+    };
   }
 
   private async fechaFe(f: FechaTour): Promise<Record<string, unknown>> {
@@ -1319,6 +1343,19 @@ export class AdminFxService {
       no_incluye: body.no_incluye,
       imagenes: body.imagenes,
     };
+    // Campos del documento de tour (catálogo).
+    for (const campo of [
+      'clave',
+      'familia',
+      'duracion_dias',
+      'duracion_noches',
+      'hora_salida',
+      'cupos',
+      'reserva_usd',
+      'notas',
+    ]) {
+      if (body[campo] !== undefined) datos[campo] = body[campo];
+    }
     if (body.politica_cancelacion_id !== undefined) datos.politica_cancelacion_id = body.politica_cancelacion_id || null;
     if (body.terminos_version_id !== undefined) {
       // El tour referencia la plantilla; el frontend manda la versión.
@@ -1347,6 +1384,7 @@ export class AdminFxService {
         incluye: (datos.incluye as string[]) ?? [],
         no_incluye: (datos.no_incluye as string[]) ?? [],
         imagenes: (datos.imagenes as string[]) ?? [],
+        notas: (datos.notas as string[]) ?? [],
       } as Tour),
     );
     return this.tourFe(tour);
@@ -1359,6 +1397,7 @@ export class AdminFxService {
       this.tourRepo.create({
         ...tour,
         id: undefined as never,
+        clave: null,
         nombre: `${tour.nombre} (copia)`,
         estado: 'borrador',
         version: 1,
@@ -1367,6 +1406,65 @@ export class AdminFxService {
       } as unknown as Tour),
     );
     return this.tourFe(copia);
+  }
+
+  // ── documento de tour (el catálogo como contrato) ──────────────────────
+
+  /** Documento del tour con la forma del catálogo. */
+  async documentoTour(id: string) {
+    return this.catalogoService.documento(id);
+  }
+
+  /** Crea o actualiza un tour a partir de su documento. */
+  async guardarDocumento(id: string | null, body: Record<string, unknown>, usuarioId: string) {
+    const resultado = await this.catalogoService.guardarDocumento(id, body as never, { usuarioId });
+    return { tour: await this.tourFe(resultado.tour), documento: resultado.documento };
+  }
+
+  /** Crea varias salidas con sus tarifas (fechas explícitas o recurrentes). */
+  async fechasMasivo(tourId: string, body: Record<string, unknown>) {
+    const resultado = await this.catalogoService.fechasMasivo(tourId, body as never);
+    const fechas = await Promise.all(resultado.fechas.map((f) => this.fechaFe(f)));
+    return {
+      fechas,
+      creadas: resultado.creadas,
+      actualizadas: resultado.actualizadas,
+      tarifas_creadas: resultado.tarifas_creadas,
+    };
+  }
+
+  /** Publica el formulario base del tour (punto de salida, almuerzo, alergias). */
+  async formularioPlantilla(tourId: string, usuarioId: string) {
+    return this.catalogoService.formularioPlantilla(tourId, usuarioId);
+  }
+
+  /** Publica la versión del formulario: crea la n+1 y archiva la anterior. */
+  async publicarFormulario(tourId: string, usuarioId: string) {
+    const resultado = await this.toursService.publicarFormulario(tourId, usuarioId);
+    return {
+      version: resultado.version.version,
+      estado: resultado.version.estado,
+      impacto: resultado.impacto,
+    };
+  }
+
+  /** Requisitos de activación: los calcula el servidor. */
+  async requisitosTour(id: string) {
+    const requisitos = await this.toursService.requisitos(id);
+    return { ok: requisitos.every((r) => r.ok), requisitos };
+  }
+
+  /** Horarios de recogida de los puntos de este tour. */
+  async guardarPuntos(tourId: string, body: { puntos: { clave: string; hora: string; confirmar_hora?: boolean }[] }) {
+    await this.catalogoService.guardarPuntos(tourId, body.puntos ?? []);
+    const tour = await this.tourRepo.findOne({ where: { id: tourId } });
+    if (!tour) throw ApiError.noEncontrado('Tour');
+    return this.tourFe(tour);
+  }
+
+  /** Exporta todo el catálogo con la forma del JSON de referencia. */
+  async exportarCatalogo() {
+    return this.catalogoService.exportarCatalogo();
   }
 
   async cambiarEstadoTour(id: string, estado: 'activo' | 'archivado', usuarioId: string) {
@@ -1463,7 +1561,24 @@ export class AdminFxService {
   async formulario(tourId: string) {
     const fv = await this.ultimasVersionesForm();
     const version = fv.get(tourId);
-    return { formulario: version ? formularioPublico(version) : null };
+    // Todas las versiones del tour (para el constructor: historial y comparación).
+    const versiones = await this.formVersions.find({
+      where: { tour_id: tourId },
+      order: { version: 'DESC' },
+    });
+    return {
+      formulario: version ? formularioPublico(version) : null,
+      versiones: versiones.map((v) => ({
+        id: v.id,
+        tour_id: v.tour_id,
+        version: v.version,
+        estado: v.estado,
+        definicion: { campos: ((v.definicion ?? {}) as { campos?: unknown[] }).campos ?? [] },
+        publicada_en: iso(v.publicada_en) ?? null,
+        autor: v.publicada_por ?? null,
+        hash: v.hash,
+      })),
+    };
   }
 
   async guardarFormulario(tourId: string, body: { definicion: { campos: Record<string, unknown>[] } }, usuarioId: string) {

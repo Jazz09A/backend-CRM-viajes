@@ -1,10 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { Tour, TourPuntoAbordaje, TourFormVersion, FechaTour } from '../../database/entities';
+import {
+  Tour,
+  TourPuntoAbordaje,
+  TourFormVersion,
+  FechaTour,
+  PlantillaTerminosVersion,
+  Tarifa,
+} from '../../database/entities';
 import { ApiError } from '../../common/errors';
 import { ActualizarTourDto, CrearTourDto, PuntoAbordajeDto } from './tours.dto';
 import { sha256Hex } from '../../common/crypto.util';
+
+/** Requisito de activación de un tour (lo calcula el servidor). */
+export interface RequisitoActivacion {
+  clave: string;
+  titulo: string;
+  detalle: string;
+  ok: boolean;
+}
 
 @Injectable()
 export class ToursService {
@@ -13,6 +28,9 @@ export class ToursService {
     @InjectRepository(TourPuntoAbordaje) private readonly puntos: Repository<TourPuntoAbordaje>,
     @InjectRepository(TourFormVersion) private readonly versiones: Repository<TourFormVersion>,
     @InjectRepository(FechaTour) private readonly fechas: Repository<FechaTour>,
+    @InjectRepository(PlantillaTerminosVersion)
+    private readonly terminosVersiones: Repository<PlantillaTerminosVersion>,
+    @InjectRepository(Tarifa) private readonly tarifas: Repository<Tarifa>,
   ) {}
 
   listar(filtros: { estado?: string; tipo?: string; q?: string }) {
@@ -30,7 +48,10 @@ export class ToursService {
   }
 
   async crear(dto: CrearTourDto, usuarioId: string) {
-    const tour = this.tours.create({ ...dto, estado: 'borrador', creado_por: usuarioId });
+    const datos: Record<string, unknown> = { ...dto, estado: 'borrador', creado_por: usuarioId };
+    // El monto de la reserva se guarda como decimal (el motor lo lee texto).
+    if (dto.reserva_usd !== undefined) datos.reserva_usd = String(dto.reserva_usd);
+    const tour = this.tours.create(datos as never);
     return this.tours.save(tour);
   }
 
@@ -38,6 +59,9 @@ export class ToursService {
     const tour = await this.obtener(id);
     this.verificarVersion(tour.version, dto.version);
     const { version: _v, ...cambios } = dto;
+    if (cambios.reserva_usd !== undefined) {
+      (cambios as Record<string, unknown>).reserva_usd = String(cambios.reserva_usd);
+    }
     Object.assign(tour, cambios);
     tour.version += 1;
     return this.tours.save(tour);
@@ -61,15 +85,100 @@ export class ToursService {
   }
 
   private async validarActivacion(tour: Tour) {
-    if (!tour.politica_cancelacion_id) {
-      throw ApiError.validacion('El tour necesita una política de cancelación para activarse');
+    const requisitos = await this.requisitos(tour.id);
+    const pendientes = requisitos.filter((r) => !r.ok);
+    if (pendientes.length) {
+      throw ApiError.validacion(
+        'El tour todavía no cumple los requisitos para activarse',
+        pendientes.map((r) => ({ campo: r.clave, codigo: 'REQUISITO_PENDIENTE', mensaje: r.detalle })),
+      );
     }
-    const publicada = await this.versiones.findOne({
-      where: { tour_id: tour.id, estado: 'publicada' },
-    });
-    if (!publicada) {
-      throw ApiError.validacion('El tour necesita un formulario publicado para activarse');
+  }
+
+  /**
+   * Requisitos para activar un tour: **el servidor es la autoridad** y el
+   * panel sólo los muestra (antes el panel decía «todo listo» y el servidor
+   * fallaba después).
+   */
+  async requisitos(tourId: string): Promise<RequisitoActivacion[]> {
+    const tour = await this.obtener(tourId);
+
+    const [versiones, puntosTour, fechas] = await Promise.all([
+      this.versiones.find({ where: { tour_id: tourId } }),
+      this.puntos.find({ where: { tour_id: tourId, activo: true } }),
+      this.fechas.find({ where: { tour_id: tourId } }),
+    ]);
+
+    const formularioPublicado = versiones.find((v) => v.estado === 'publicada');
+
+    let terminosOk = false;
+    if (tour.plantilla_terminos_id) {
+      const version = await this.terminosVersiones.findOne({
+        where: { plantilla_id: tour.plantilla_terminos_id, estado: 'publicada' },
+      });
+      terminosOk = Boolean(version);
     }
+
+    const publicadas = fechas.filter((f) => f.estado === 'publicada');
+    const ids = publicadas.map((f) => f.id);
+    const tarifas = ids.length ? await this.tarifas.find({ where: { fecha_tour_id: In(ids) } }) : [];
+    const porFecha = new Map<string, number>();
+    for (const t of tarifas) porFecha.set(t.fecha_tour_id, (porFecha.get(t.fecha_tour_id) ?? 0) + 1);
+    const incompletas = publicadas.filter((f) => (porFecha.get(f.id) ?? 0) < 4);
+
+    return [
+      {
+        clave: 'politica',
+        titulo: 'Política de cancelación',
+        ok: Boolean(tour.politica_cancelacion_id),
+        detalle: tour.politica_cancelacion_id
+          ? 'El tour ya tiene una política asociada.'
+          : 'Falta asociar una política de cancelación al tour.',
+      },
+      {
+        clave: 'terminos',
+        titulo: 'Términos y condiciones',
+        ok: terminosOk,
+        detalle: terminosOk
+          ? 'Los términos están publicados y se mostrarán al cliente.'
+          : 'Falta publicar los términos y condiciones.',
+      },
+      {
+        clave: 'formulario',
+        titulo: 'Formulario del tour',
+        ok: Boolean(formularioPublicado),
+        detalle: formularioPublicado
+          ? 'El formulario está publicado: el cliente puede responderlo.'
+          : 'Falta publicar el formulario del tour (punto de salida, almuerzo, alergias…).',
+      },
+      {
+        clave: 'puntos',
+        titulo: 'Puntos de abordaje',
+        ok: puntosTour.length > 0,
+        detalle:
+          puntosTour.length > 0
+            ? `${puntosTour.length} punto(s) con su horario de recogida.`
+            : 'Falta asignar al menos un punto de salida con su hora.',
+      },
+      {
+        clave: 'salidas',
+        titulo: 'Salidas publicadas',
+        ok: publicadas.length > 0,
+        detalle:
+          publicadas.length > 0
+            ? `${publicadas.length} salida(s) publicada(s).`
+            : 'Falta publicar al menos una salida: sin salidas el cliente no puede reservar.',
+      },
+      {
+        clave: 'tarifas',
+        titulo: 'Tarifas de cada salida',
+        ok: incompletas.length === 0,
+        detalle:
+          incompletas.length === 0
+            ? 'Todas las salidas publicadas tienen las cuatro categorías de precio.'
+            : `${incompletas.length} salida(s) publicada(s) no tienen las cuatro tarifas (adulto, niño, tercera edad, infante).`,
+      },
+    ];
   }
 
   private async validarArchivado(tour: Tour) {

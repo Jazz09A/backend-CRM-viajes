@@ -274,11 +274,16 @@ export async function ejecutarSeedDemo(ds: DataSource): Promise<void> {
 
   // ── políticas de cancelación ───────────────────────────────────────
   const polFull = await politicas.findOne({ where: { nombre: 'Política de cancelación — Full Days' } });
+  if (polFull && !polFull.clave) {
+    polFull.clave = 'full_day';
+    await politicas.save(polFull);
+  }
   const polFullId =
     polFull?.id ??
     (
       await politicas.save(
         politicas.create({
+          clave: 'full_day',
           nombre: 'Política de cancelación — Full Days',
           tramos: [
             { dias_min: 7, dias_max: null, reembolso_pct: 100 },
@@ -289,11 +294,16 @@ export async function ejecutarSeedDemo(ds: DataSource): Promise<void> {
       )
     ).id;
   const polFinde = await politicas.findOne({ where: { nombre: 'Política de cancelación — Fines de semana' } });
+  if (polFinde && !polFinde.clave) {
+    polFinde.clave = 'fin_de_semana';
+    await politicas.save(polFinde);
+  }
   const polFindeId =
     polFinde?.id ??
     (
       await politicas.save(
         politicas.create({
+          clave: 'fin_de_semana',
           nombre: 'Política de cancelación — Fines de semana',
           tramos: [
             { dias_min: 15, dias_max: null, reembolso_pct: 100 },
@@ -307,9 +317,13 @@ export async function ejecutarSeedDemo(ds: DataSource): Promise<void> {
 
   // ── términos y condiciones ─────────────────────────────────────────
   let plantillaTerm = await plantTerm.findOne({ where: { nombre: 'Términos y condiciones — Ruta Clara Viajes' } });
+  if (plantillaTerm && !plantillaTerm.clave) {
+    plantillaTerm.clave = 'ruta-clara-v1';
+    plantillaTerm = await plantTerm.save(plantillaTerm);
+  }
   if (!plantillaTerm) {
     plantillaTerm = await plantTerm.save(
-      plantTerm.create({ nombre: 'Términos y condiciones — Ruta Clara Viajes' }),
+      plantTerm.create({ clave: 'ruta-clara-v1', nombre: 'Términos y condiciones — Ruta Clara Viajes' }),
     );
   }
   const versionesTerm = await plantTermVer.find({ where: { plantilla_id: plantillaTerm.id } });
@@ -400,6 +414,7 @@ export async function ejecutarSeedDemo(ds: DataSource): Promise<void> {
     if (!tour) {
       tour = await tours.save(
         tours.create({
+          clave: seed.clave,
           nombre: seed.nombre,
           tipo: seed.tipo,
           descripcion: seed.descripcion,

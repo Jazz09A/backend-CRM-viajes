@@ -289,26 +289,61 @@ export function voucherPublico(v: Voucher, baseUrl = '', verifToken = ''): Recor
 // Catálogo
 // ---------------------------------------------------------------------------
 
-export function tourPublico(tour: Tour, puntos: PuntoSalida[], formVersionId: string | null, terminosVersionId: string | null): Record<string, unknown> {
+/**
+ * Puntos de abordaje de un tour: la **hora es la del tour**, no la del
+ * catálogo global (el mismo punto se recoge a distinta hora según el viaje).
+ */
+export interface PuntoTourPublico {
+  clave: string;
+  nombre: string;
+  hora: string;
+  referencia?: string | null;
+  confirmar_hora?: boolean;
+}
+
+export function tourPublico(
+  tour: Tour,
+  puntos: PuntoSalida[],
+  formVersionId: string | null,
+  terminosVersionId: string | null,
+  puntosTour?: PuntoTourPublico[],
+): Record<string, unknown> {
+  const propio = (puntosTour ?? []).map((p) => ({
+    id: p.clave,
+    clave: p.clave,
+    nombre: p.nombre,
+    hora: p.hora,
+    referencia_ubicacion: p.referencia ?? '',
+    mapa_url: '',
+    confirmar_hora: p.confirmar_hora === true,
+  }));
   return {
     id: tour.id,
     nombre: tour.nombre,
     tipo: tour.tipo,
+    familia: tour.familia ?? '',
+    duracion_dias: tour.duracion_dias ?? null,
+    duracion_noches: tour.duracion_noches ?? null,
     descripcion: tour.descripcion ?? '',
     itinerario: tour.itinerario ?? [],
     incluye: tour.incluye ?? [],
     no_incluye: tour.no_incluye ?? [],
     imagenes: tour.imagenes ?? [],
-    puntos_abordaje: puntos
-      .filter((p) => p.activo)
-      .sort((a, b) => a.orden - b.orden)
-      .map((p) => ({
-        id: p.id,
-        nombre: p.nombre,
-        hora: p.hora,
-        referencia_ubicacion: p.referencia ?? '',
-        mapa_url: '',
-      })),
+    puntos_abordaje:
+      propio.length > 0
+        ? propio
+        : puntos
+            .filter((p) => p.activo)
+            .sort((a, b) => a.orden - b.orden)
+            .map((p) => ({
+              id: p.id,
+              clave: p.clave,
+              nombre: p.nombre,
+              hora: p.hora,
+              referencia_ubicacion: p.referencia ?? '',
+              mapa_url: '',
+              confirmar_hora: false,
+            })),
     estado: tour.estado,
     politica_cancelacion_id: tour.politica_cancelacion_id ?? '',
     terminos_version_id: terminosVersionId ?? '',
@@ -366,6 +401,7 @@ export function politicaPublica(p: PoliticaCancelacion): Record<string, unknown>
   const tramos = (p.tramos ?? []) as { dias_min: number; dias_max: number | null; reembolso_pct: number }[];
   return {
     id: p.id,
+    clave: p.clave ?? '',
     nombre: p.nombre,
     tramos: tramos.map((t) => ({
       dias_desde_salida: t.dias_min,
@@ -501,6 +537,9 @@ export function terminosPublico(v: PlantillaTerminosVersion, plantilla?: Plantil
     id: v.id,
     version: v.version,
     titulo: plantilla?.nombre ?? 'Términos y condiciones',
+    /** Clave de la plantilla: así un tour la referencia (`escapate-v1`). */
+    clave: plantilla?.clave ?? '',
+    plantilla_id: plantilla?.id ?? null,
     cuerpo: v.contenido,
     publicada_en: iso(v.publicada_en ?? v.creado_en) ?? new Date().toISOString(),
     activa: v.estado === 'publicada',

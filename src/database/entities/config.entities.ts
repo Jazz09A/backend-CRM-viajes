@@ -54,6 +54,10 @@ export class MetodoPago extends ConTimestamps {
 @Entity('plantilla_terminos')
 export class PlantillaTerminos extends ConTimestamps {
   @Column('varchar', { length: 120 }) nombre!: string;
+
+  /** Clave estable con la que la referencia un tour (`escapate-v1`). */
+  @Index({ unique: true })
+  @Column('varchar', { length: 80, nullable: true }) clave?: string | null;
 }
 
 @Entity('plantilla_terminos_version')
@@ -93,6 +97,10 @@ export class PlantillaMensaje extends ConTimestamps {
 
 @Entity('politica_cancelacion')
 export class PoliticaCancelacion extends ConTimestamps {
+  /** Clave estable con la que la referencia un tour (`full_day`, `multi_dia`). */
+  @Index({ unique: true })
+  @Column('varchar', { length: 40, nullable: true }) clave?: string | null;
+
   @Column('varchar', { length: 120 }) nombre!: string;
 
   /** [{dias_min, dias_max|null, reembolso_pct}] sin huecos ni solapes. */

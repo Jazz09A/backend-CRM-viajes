@@ -70,7 +70,28 @@ aplican fuera de producción (para pruebas automatizadas).
 | `exportaciones` | Exportaciones XLSX asíncronas con historial y expiración |
 | `jobs` | Loop de fondo: outbox, expiración de reservas, cierre de viajes |
 | `adminfx` | BFF/fachada para el panel admin; delega mutaciones a servicios de dominio |
+| `catalogo` | Documento de tour (el catálogo como contrato): aplicar/guardar/exportar |
 | `configuracion`, `catalogo`, `cupos`, `fechas`, `tours`, `clientes`, `auditoria` | Dominios de soporte |
+
+## El catálogo como contrato
+
+El alta de tours (panel) y el importador por CLI hablan la **misma forma**:
+`catalogo-escapate.json`. La lógica vive en `src/modules/catalogo/documento.ts`
+(`aplicarCatalogo` para el CLI, `aplicarDocumentoTour` para el panel) y el
+importador la reutiliza.
+
+| Endpoint | Qué hace |
+| --- | --- |
+| `GET /adminfx/tours/{id}/documento` | Documento del tour (misma forma que el JSON del catálogo) |
+| `POST /adminfx/tours/documento` | Crea un tour desde su documento |
+| `PUT /adminfx/tours/{id}/documento` | Guarda el documento (datos, puntos, precios, notas) |
+| `POST /adminfx/tours/{id}/fechas-masivo` | N salidas + sus 4 tarifas (fechas explícitas o recurrentes) |
+| `POST /adminfx/tours/{id}/formulario/plantilla` | Publica el formulario base (punto, almuerzo, alergias) |
+| `PUT /adminfx/tours/{id}/puntos-abordaje` | Horario de recogida de cada punto (es **del tour**) |
+| `GET /adminfx/tours/{id}/requisitos` | Requisitos de activación (los calcula el servidor) |
+| `GET /adminfx/catalogo/documento` | Exporta todo el catálogo con la misma forma |
+
+Detalles del modelo y del mapeo: `CATALOGO-ESCAPATE.md`.
 
 ### Confirmación manual de la reserva
 
