@@ -200,6 +200,53 @@ describe('Documento de tour (el catálogo como contrato)', () => {
     assert.ok(campos.some((c) => c.id === 'almuerzo'));
   });
 
+  it('sin puntos propios hereda los del catálogo global, y con un solo precio deriva las categorías', async () => {
+    const ctx = await prepararCatalogo();
+    const doc = documento();
+    doc.puntos = [];
+    doc.precios = { adulto: 30 };
+    const resultado = await ds.transaction((em) => aplicarDocumentoTour(em, doc, ctx));
+
+    // Puntos: los activos del catálogo global, con su hora de referencia y
+    // Caracas «por confirmar».
+    const puntos = await ds.getRepository(TourPuntoAbordaje).find({
+      where: { tour_id: resultado.tourId },
+      order: { orden: 'ASC' },
+    });
+    assert.equal(puntos.length, 2);
+    assert.equal(puntos[0].clave, 'guatire_castillejo');
+    assert.equal(puntos[0].hora, '21:00');
+    assert.equal(puntos[0].confirmar_hora, false);
+    assert.equal(puntos[1].clave, 'caracas_altamira');
+    assert.equal(puntos[1].hora, '12:30');
+    assert.equal(puntos[1].confirmar_hora, true);
+
+    // El formulario sólo ofrece el punto seleccionable (Caracas no).
+    const forms = await ds
+      .getRepository(TourFormVersion)
+      .find({ where: { tour_id: resultado.tourId, estado: 'publicada' } });
+    const campos = (forms[0].definicion as { campos: Record<string, unknown>[] }).campos;
+    const punto = campos.find((c) => c.id === 'punto_abordaje');
+    assert.deepEqual(punto?.opciones, [
+      { valor: 'guatire_castillejo', label: 'Emporium Nuevo Castillejo' },
+    ]);
+
+    // Precio único: niño y tercera edad quedan al precio adulto, infante en 0.
+    const precios = await ds.getRepository(TourPrecio).find({ where: { tour_id: resultado.tourId } });
+    assert.equal(precios.length, 4);
+    assert.equal(Number(precios.find((p) => p.categoria === 'adulto')?.precio_usd), 30);
+    assert.equal(Number(precios.find((p) => p.categoria === 'nino')?.precio_usd), 30);
+    assert.equal(Number(precios.find((p) => p.categoria === 'tercera_edad')?.precio_usd), 30);
+    assert.equal(Number(precios.find((p) => p.categoria === 'infante')?.precio_usd), 0);
+    // Y las tarifas de la salida nacen derivadas igual.
+    const fechas = await ds.getRepository(FechaTour).find({ where: { tour_id: resultado.tourId } });
+    const tarifas = await ds
+      .getRepository(Tarifa)
+      .find({ where: { fecha_tour_id: fechas[0]?.id } });
+    assert.equal(Number(tarifas.find((t) => t.categoria === 'nino')?.precio_usd), 30);
+    assert.equal(Number(tarifas.find((t) => t.categoria === 'infante')?.precio_usd), 0);
+  });
+
   it('es idempotente: aplicarlo dos veces no duplica nada', async () => {
     const ctx = await prepararCatalogo();
     await ds.transaction((em) => aplicarDocumentoTour(em, documento(), ctx));

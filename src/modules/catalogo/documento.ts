@@ -328,9 +328,24 @@ export async function aplicarDocumentoTour(
   const tourId = fila.id;
 
   // ── puntos de abordaje (hora de este tour) ─────────────────────────────
+  // Los puntos son **siempre los mismos en los formularios** (catálogo
+  // global): si el documento no define puntos propios, el tour hereda los
+  // activos del catálogo con su hora de referencia (Caracas queda «por
+  // confirmar», como siempre).
   const catalogoPuntos = ctx.puntos ?? new Map<string, PuntoSalida>();
   await repoPuntosTour.delete({ tour_id: tourId });
-  const puntos = (doc.puntos ?? []).filter((p) => p?.clave);
+  let puntos = (doc.puntos ?? []).filter((p) => p?.clave);
+  if (!puntos.length) {
+    const activos = [...catalogoPuntos.values()]
+      .filter((p) => p.activo)
+      .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+    puntos = activos.map((p) => ({
+      clave: p.clave,
+      hora: p.hora,
+      confirmar_hora:
+        (p.ciudad ?? '').toLowerCase().includes('caracas') || p.seleccionable === false,
+    }));
+  }
   if (puntos.length) {
     const entidades = puntos.map((p, i) => {
       const ref = catalogoPuntos.get(p.clave);
@@ -351,7 +366,18 @@ export async function aplicarDocumentoTour(
   }
 
   // ── matriz de precios del tour (plantilla de las salidas) ──────────────
-  const precios = doc.precios ?? {};
+  // El catálogo define **una sola cifra por tour** (regla 4 del catálogo):
+  // niño y tercera edad quedan al precio adulto y el infante (0-4 años) en
+  // 0.00. Si el documento trae todas las categorías (importador), se respetan.
+  const precios: Partial<Record<CategoriaPasajero, number>> = { ...(doc.precios ?? {}) };
+  if (precios.adulto !== undefined) {
+    if (precios.nino === undefined && precios.tercera_edad === undefined) {
+      precios.nino = precios.adulto;
+      precios.tercera_edad = precios.adulto;
+    }
+    // El infante (0-4 años) viaja gratis: siempre 0.
+    if (precios.infante === undefined) precios.infante = 0;
+  }
   for (const categoria of CATEGORIAS) {
     const precio = precios[categoria];
     if (precio === undefined || precio === null || !Number.isFinite(Number(precio))) continue;
