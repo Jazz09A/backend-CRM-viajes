@@ -47,13 +47,15 @@ export class TourDocumento1794026342826 implements MigrationInterface {
     );
 
     // La plantilla de cada tour se toma de la primera tarifa que tiene.
+    // `MIN` sobre `uuid` no existe en Postgres: se compara en texto
+    // (`CAST` es portable entre SQLite y PG).
     await queryRunner.query(
       `INSERT INTO "tour_precio" ("id", "creado_en", "actualizado_en", "tour_id", "categoria", "edad_min", "edad_max", "precio_usd")
        SELECT t2."id", t2."creado_en", t2."actualizado_en", f2."tour_id", t2."categoria", t2."edad_min", t2."edad_max", t2."precio_usd"
          FROM "tarifa" t2
          JOIN "fecha_tour" f2 ON f2."id" = t2."fecha_tour_id"
-        WHERE t2."id" IN (
-          SELECT MIN(t3."id")
+        WHERE CAST(t2."id" AS text) IN (
+          SELECT MIN(CAST(t3."id" AS text))
             FROM "tarifa" t3
             JOIN "fecha_tour" f3 ON f3."id" = t3."fecha_tour_id"
            GROUP BY f3."tour_id", t3."categoria"
