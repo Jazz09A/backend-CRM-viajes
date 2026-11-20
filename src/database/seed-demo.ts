@@ -186,7 +186,7 @@ El titular declara ser mayor de 18 años, firma en nombre propio y de sus acompa
 
 ## 3. Cancelaciones y reembolsos
 
-La cancelación debe solicitarse antes de la salida. El reembolso se calcula con la tabla escalonada de la política de cancelación del tour: con más de 7 días se devuelve el 100 %, entre 3 y 7 días el 50 % y con menos de 3 días no hay reembolso. El saldo no reembolsable cubre servicios ya contratados con proveedores.
+Si cancelas la reserva, no se devuelve ningún monto por temas de logística y políticas de la empresa. La política de cancelación del tour establece 0 % de reembolso en todos los tramos, ya que los servicios se contratan con anticipación y no admiten devoluciones.
 
 ## 4. Uso de datos personales
 
@@ -210,7 +210,7 @@ El titular declara ser mayor de 18 años y entrega datos veraces de todos los pa
 
 ## 3. Cancelaciones y reembolsos
 
-La cancelación se calcula con la tabla escalonada de la política de cancelación del tour.
+Si cancelas la reserva, no se devuelve ningún monto por temas de logística y políticas de la empresa. La política establece 0 % de reembolso en todos los tramos.
 
 ## 4. Uso de datos personales
 
@@ -286,8 +286,8 @@ export async function ejecutarSeedDemo(ds: DataSource): Promise<void> {
           clave: 'full_day',
           nombre: 'Política de cancelación — Full Days',
           tramos: [
-            { dias_min: 7, dias_max: null, reembolso_pct: 100 },
-            { dias_min: 3, dias_max: 6, reembolso_pct: 50 },
+            { dias_min: 7, dias_max: null, reembolso_pct: 0 },
+            { dias_min: 3, dias_max: 6, reembolso_pct: 0 },
             { dias_min: 0, dias_max: 2, reembolso_pct: 0 },
           ],
         }),
@@ -306,9 +306,9 @@ export async function ejecutarSeedDemo(ds: DataSource): Promise<void> {
           clave: 'fin_de_semana',
           nombre: 'Política de cancelación — Fines de semana',
           tramos: [
-            { dias_min: 15, dias_max: null, reembolso_pct: 100 },
-            { dias_min: 7, dias_max: 14, reembolso_pct: 75 },
-            { dias_min: 3, dias_max: 6, reembolso_pct: 50 },
+            { dias_min: 15, dias_max: null, reembolso_pct: 0 },
+            { dias_min: 7, dias_max: 14, reembolso_pct: 0 },
+            { dias_min: 3, dias_max: 6, reembolso_pct: 0 },
             { dias_min: 0, dias_max: 2, reembolso_pct: 0 },
           ],
         }),

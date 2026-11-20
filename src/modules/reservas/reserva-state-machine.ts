@@ -178,10 +178,32 @@ export class ReservaStateMachine {
     },
     firmar: {
       desde: ['pendiente_firma'],
-      hacia: 'pendiente_pago',
+      hacia: 'confirmada',
       efectos: async (em, r) => {
+        // El registro termina al firmar: no hay paso de pago en el flujo del
+        // cliente (el pago se registra al crear el enlace). Igual que
+        // `confirmar_pago`: hold → venta + código + voucher.
+        if (r.cupo_estado === 'retenido') {
+          r.cupo_estado = 'vendido';
+          await this.cupos.vender(r.fecha_tour_id, r.cupo_pasajeros);
+        }
+        r.codigo = await this.asignarCodigo(em, r);
+        r.verif_token = randomBytes(16).toString('base64url');
+        r.expira_en = null;
         await em.save(Reserva, r);
+        const voucher = await em.save(
+          Voucher,
+          em.create(Voucher, {
+            reserva_id: r.id,
+            version: 1,
+            tipo: 'final',
+            estado: 'generando',
+            vigente: false,
+          }),
+        );
         await this.outbox(em, 'reserva.firmada', { reserva_id: r.id });
+        await this.outbox(em, 'voucher.generar', { voucher_id: voucher.id, reserva_id: r.id });
+        await this.outbox(em, 'reserva.confirmada', { reserva_id: r.id });
       },
     },
     confirmar_pago: {

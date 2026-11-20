@@ -544,15 +544,39 @@ export class ExportacionesService {
       [fechaTourId],
     );
 
-    const conteo = new Map<string, number>();
+    const conteoAlmuerzo = new Map<string, number>();
+    const conteoDesayuno = new Map<string, number>();
+
     for (const row of rows) {
       const respuestas = typeof row.respuestas === 'string' ? JSON.parse(row.respuestas) : row.respuestas;
-      const opcion = respuestas?.almuerzo;
-      if (opcion) conteo.set(opcion, (conteo.get(opcion) ?? 0) + 1);
+      const almuerzo = respuestas?.almuerzo;
+      if (almuerzo) conteoAlmuerzo.set(almuerzo, (conteoAlmuerzo.get(almuerzo) ?? 0) + 1);
+
+      const desayuno = respuestas?.sabor_desayuno;
+      if (desayuno) {
+        const opciones = Array.isArray(desayuno) ? desayuno : [desayuno];
+        for (const opt of opciones) {
+          conteoDesayuno.set(opt, (conteoDesayuno.get(opt) ?? 0) + 1);
+        }
+      }
     }
-    const ordenadas = [...conteo.entries()].sort((a, b) => b[1] - a[1]);
-    for (const [opcion, cantidad] of ordenadas) {
-      ws.addRow({ opcion, cantidad });
+
+    // Sección Almuerzo
+    if (conteoAlmuerzo.size > 0) {
+      ws.addRow({ opcion: '--- ALMUERZOS ---', cantidad: '' });
+      const ordenadas = [...conteoAlmuerzo.entries()].sort((a, b) => b[1] - a[1]);
+      for (const [opcion, cantidad] of ordenadas) {
+        ws.addRow({ opcion, cantidad });
+      }
+    }
+
+    // Sección Desayunos
+    if (conteoDesayuno.size > 0) {
+      ws.addRow({ opcion: '--- DESAYUNOS (EMPANADAS) ---', cantidad: '' });
+      const ordenadas = [...conteoDesayuno.entries()].sort((a, b) => b[1] - a[1]);
+      for (const [opcion, cantidad] of ordenadas) {
+        ws.addRow({ opcion, cantidad });
+      }
     }
   }
 

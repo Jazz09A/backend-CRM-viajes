@@ -489,13 +489,7 @@ export class PublicoService {
     base.tour_id = ctx.tour.id;
     base.fecha_tour_id = ctx.fecha.id;
     base.formulario_id = ctx.formVersion?.id ?? '';
-    const progreso = progresoPublico(
-      ctx.reserva,
-      ctx.pasajeros,
-      Boolean(ctx.firma),
-      ctx.reserva.estado_pago,
-      this.reportePagoClienteActivo(ctx),
-    );
+    const progreso = progresoPublico(ctx.reserva, ctx.pasajeros, Boolean(ctx.firma));
     const formulario = this.formularioSinExtras(ctx);
     return {
       reserva: base,
@@ -1043,13 +1037,7 @@ export class PublicoService {
     return {
       version: actualizada.version,
       paso_actual: pasoActualDe(actualizada),
-      progreso: progresoPublico(
-        actualizada,
-        ctx2.pasajeros,
-        Boolean(ctx2.firma),
-        actualizada.estado_pago,
-        this.reportePagoClienteActivo(ctx2),
-      ),
+      progreso: progresoPublico(actualizada, ctx2.pasajeros, Boolean(ctx2.firma)),
     };
   }
 

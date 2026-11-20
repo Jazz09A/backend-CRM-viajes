@@ -551,8 +551,22 @@ export class AdminFxService {
       estimated_pasajeros?: number;
       /** Cargos extra iniciales (toldos, servicios…). Se persisten como `reserva_linea`. */
       lineas?: { id?: string; concepto: string; cantidad: number; precio_unit_usd: string }[];
-      /** Descuentos/recargos iniciales con motivo. Se persisten como `reserva_ajuste`. */
+/** Descuentos/recargos iniciales con motivo. Se persisten como `reserva_ajuste`. */
       ajustes?: { id?: string; tipo: 'descuento' | 'recargo'; monto_usd: string; motivo: string }[];
+      /** Justificación obligatoria (mín. 10 caracteres) si hay pagos registrados y el total cambia. */
+      justificacion?: string;
+      /**
+       * Pago registrado al crear el enlace: la reserva nace pagada y el
+       * cliente sólo completa el registro y descarga el voucher.
+       */
+      pago?: {
+        metodo_clave: string;
+        monto: string;
+        moneda?: string;
+        fecha_pago?: string;
+        referencia?: string;
+        nota?: string;
+      };
     },
     usuarioId: string,
   ) {
@@ -561,6 +575,12 @@ export class AdminFxService {
     const motivoAlta = 'Alta de reserva con cargos iniciales';
     // Se valida ANTES de crear: si algo está mal no queda una reserva a medias.
     if (lineas.length || ajustes.length) this.validarPrecio({ lineas, ajustes }, motivoAlta);
+    if (!body.pago) {
+      throw ApiError.validacion('El pago es obligatorio para generar el enlace', [
+        { campo: 'pago', codigo: 'VALIDACION', mensaje: 'Registra el pago de la reserva.' },
+      ]);
+    }
+    await this.validarPagoAlta(body.pago);
 
     const resp = await this.reservasService.crear(
       { fecha_tour_id: body.fecha_tour_id, referencia_interna: body.referencia_interna },
@@ -568,13 +588,20 @@ export class AdminFxService {
     );
     const creada = resp.reserva as unknown as Reserva;
 
+    // Pago al crear el enlace: se registra aprobado (misma validación,
+    // anti-duplicado y recálculo que el pago manual del panel).
+    if (body.pago) {
+      await this.registrarPagoReserva(creada.id, body.pago, usuarioId);
+    }
+
     // Precio administrado en el alta: se reutiliza `guardarPrecio` (misma
     // validación, upsert, recálculo y auditoría que en el detalle).
     let precio: Record<string, unknown> | null = null;
     if (lineas.length || ajustes.length) {
+      const justificacionAlta = String(body.justificacion ?? motivoAlta).trim();
       precio = (await this.guardarPrecio(
         creada.id,
-        { motivo: motivoAlta, lineas, ajustes },
+        { motivo: motivoAlta, lineas, ajustes, justificacion: justificacionAlta },
         usuarioId,
       )) as Record<string, unknown>;
     }
@@ -697,6 +724,29 @@ export class AdminFxService {
           { campo: `ajustes.${i}.motivo`, codigo: 'VALIDACION', mensaje: 'Escribe el motivo.' },
         ]);
       }
+    }
+  }
+
+  /** El pago al crear el enlace es obligatorio: método activo y monto válido. */
+  private async validarPagoAlta(pago: { metodo_clave?: string; monto?: string }) {
+    if (!String(pago.metodo_clave ?? '').trim()) {
+      throw ApiError.validacion('Elige el método de pago', [
+        { campo: 'pago.metodo_clave', codigo: 'VALIDACION', mensaje: 'Elige un método de pago.' },
+      ]);
+    }
+    const monto = Number(String(pago.monto ?? '').replace(',', '.'));
+    if (!Number.isFinite(monto) || monto <= 0) {
+      throw ApiError.validacion('Escribe un monto válido', [
+        { campo: 'pago.monto', codigo: 'VALIDACION', mensaje: 'Monto inválido.' },
+      ]);
+    }
+    const metodo = await this.metodos.findOne({
+      where: { clave: String(pago.metodo_clave), activo: true },
+    });
+    if (!metodo) {
+      throw ApiError.validacion('Elige un método de pago activo', [
+        { campo: 'pago.metodo_clave', codigo: 'VALIDACION', mensaje: 'Método de pago no disponible.' },
+      ]);
     }
   }
 

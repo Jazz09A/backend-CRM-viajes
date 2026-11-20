@@ -106,10 +106,11 @@ export function pasoActualDe(r: Reserva): string {
       return r.paso_registro ?? 'titular';
     case 'pendiente_firma':
       return 'firma';
+    // Reservas legacy que quedaron en el viejo paso de pago: para el cliente
+    // la reserva está en su etapa final (el flujo ya no tiene pago); el panel
+    // puede confirmarlas con la acción existente.
     case 'pendiente_pago':
-      return 'pago';
     case 'pago_en_verificacion':
-      return 'verificacion';
     case 'confirmada':
     case 'completada':
       return 'confirmada';
@@ -122,19 +123,14 @@ export function progresoPublico(
   r: Reserva,
   pasajeros: Pasajero[],
   tieneFirma: boolean,
-  estadoPago: string,
-  reportePagoActivo = true,
 ): Record<string, unknown> {
-  const ORDEN = ['titular', 'acompanantes', 'preguntas', 'resumen', 'firma', 'pago'];
+  const ORDEN = ['titular', 'acompanantes', 'preguntas', 'resumen', 'firma'];
   const LABEL: Record<string, string> = {
     titular: 'Titular',
     acompanantes: 'Acompañantes',
     preguntas: 'Preguntas',
     resumen: 'Confirmación',
     firma: 'Firma',
-    // Con el reporte del cliente desactivado, la agencia es quien anota el
-    // pago: el paso pasa a leerse como coordinación, no como acción del cliente.
-    pago: reportePagoActivo ? 'Pago' : 'Coordinación de pago',
   };
   const pasoActual = pasoActualDe(r);
   const indiceActual = ORDEN.indexOf(pasoActual);
@@ -162,8 +158,6 @@ export function progresoPublico(
   if (!titular?.correo) camposFaltantes.push('titular.correo');
   if (pasajeros.length < 1) camposFaltantes.push('pasajeros');
   if (!tieneFirma) camposFaltantes.push('firma');
-  // El pago sólo falta como acción del cliente si él mismo debe reportarlo.
-  if (reportePagoActivo && estadoPago !== 'pagado') camposFaltantes.push('pago');
 
   let mensajeReanudacion: string | undefined;
   if (r.estado === 'en_registro' && indiceActual > 0) {

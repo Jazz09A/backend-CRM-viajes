@@ -196,19 +196,23 @@ describe('ReservaStateMachine · cupo reservado tras iniciar el registro', () =>
     assert.equal(opcion.retenidos, 4);
   });
 
-  it('al pagar el cupo pasa a vendido y la expiración desaparece', async () => {
+  it('al firmar el cupo pasa a vendido y la expiración desaparece', async () => {
     const r = await nuevaReserva();
     await sm.transicionar(r.id, 'iniciar_registro', actor);
     await sm.transicionar(r.id, 'confirmar_resumen', actor, { datos: { cupo_pasajeros: 2, cupo_opciones: [] } });
     await sm.transicionar(r.id, 'firmar', actor);
-    await sm.transicionar(r.id, 'confirmar_pago', actor);
 
     const fecha = await repo(FechaTour).findOneByOrFail({ id: fechaId });
     assert.equal(fecha.cupos_vendidos, 2);
     assert.equal(fecha.cupos_retenidos, 0);
     const despues = await repo(Reserva).findOneByOrFail({ id: r.id });
+    assert.equal(despues.estado, 'confirmada');
     assert.equal(despues.cupo_estado, 'vendido');
     assert.equal(despues.expira_en, null);
+    // El voucher nace con la firma (sin paso de pago).
+    const voucher = await repo(Voucher).findOne({ where: { reserva_id: r.id } });
+    assert.ok(voucher, 'la firma crea el voucher');
+    assert.equal(voucher?.estado, 'generando');
   });
 
   it('si el grupo cambia durante el registro el hold se ajusta (crece y decrece)', async () => {

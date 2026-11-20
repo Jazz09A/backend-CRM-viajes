@@ -78,6 +78,11 @@ describe('AdminFxService.crearReserva (cargos iniciales)', () => {
 
   const repo = <T extends object>(e: new () => T) => ds.getRepository(e);
 
+  // `registrarPagoReserva` recalcula el estado de pago tras registrar el pago.
+  const pagosStub = { recalcularEstadoPago: async () => null } as unknown as never;
+
+  const pagoAlta = { metodo_clave: 'transferencia', monto: '120.00', referencia: 'REF-100' };
+
   before(async () => {
     ds = new DataSource({
       type: 'better-sqlite3',
@@ -116,7 +121,7 @@ describe('AdminFxService.crearReserva (cargos iniciales)', () => {
       repo(AuditLog),
       repo(NotificacionPanel),
       reservasStub,
-      {} as never,
+      pagosStub,
       {} as never,
       {} as never,
       {} as never,
@@ -143,9 +148,21 @@ describe('AdminFxService.crearReserva (cargos iniciales)', () => {
       Tour,
       Cliente,
       Configuracion,
+      Pago,
+      MetodoPago,
     ]) {
       await ds.getRepository(e).clear();
     }
+
+    await ds.getRepository(MetodoPago).save(
+      ds.getRepository(MetodoPago).create({
+        clave: 'transferencia',
+        nombre: 'Transferencia',
+        moneda: 'USD',
+        activo: true,
+        orden: 1,
+      }),
+    );
 
     const tour = await ds.getRepository(Tour).save(
       ds.getRepository(Tour).create({
@@ -177,12 +194,19 @@ describe('AdminFxService.crearReserva (cargos iniciales)', () => {
   });
 
   it('crea la reserva sin cargo alguno cuando no se envían líneas ni ajustes', async () => {
-    const resp = await service.crearReserva({ fecha_tour_id: fechaId }, usuarioId);
+    const resp = await service.crearReserva({ fecha_tour_id: fechaId, pago: pagoAlta }, usuarioId);
 
     assert.equal(await ds.getRepository(ReservaLinea).count(), 0);
     assert.equal(await ds.getRepository(ReservaAjuste).count(), 0);
     assert.equal(Number((resp.reserva as { total_usd: string }).total_usd), 0);
     assert.equal(resp.precio, undefined);
+
+    // La reserva nace pagada: el pago queda registrado al crear el enlace.
+    const pagos = await ds.getRepository(Pago).find();
+    assert.equal(pagos.length, 1);
+    assert.equal(pagos[0]!.estado, 'aprobado');
+    assert.equal(pagos[0]!.origen, 'operador');
+    assert.equal(pagos[0]!.referencia, 'REF-100');
   });
 
   it('persiste los cargos y ajustes iniciales y recalcula el total', async () => {
@@ -192,6 +216,7 @@ describe('AdminFxService.crearReserva (cargos iniciales)', () => {
         referencia_interna: 'María Pérez',
         lineas: [{ concepto: 'Alquiler de toldo', cantidad: 2, precio_unit_usd: '10.00' }],
         ajustes: [{ tipo: 'descuento', monto_usd: '5.00', motivo: 'Convenio con el cliente' }],
+        pago: pagoAlta,
       },
       usuarioId,
     );
@@ -223,6 +248,7 @@ describe('AdminFxService.crearReserva (cargos iniciales)', () => {
           {
             fecha_tour_id: fechaId,
             lineas: [{ concepto: '   ', cantidad: 1, precio_unit_usd: '10.00' }],
+            pago: pagoAlta,
           },
           usuarioId,
         ),
@@ -234,5 +260,45 @@ describe('AdminFxService.crearReserva (cargos iniciales)', () => {
 
     assert.equal(await ds.getRepository(Reserva).count(), 0);
     assert.equal(await ds.getRepository(ReservaLinea).count(), 0);
+  });
+
+  it('exige el pago para generar el enlace', async () => {
+    await assert.rejects(
+      () => service.crearReserva({ fecha_tour_id: fechaId }, usuarioId),
+      (error: { codigo?: string; status?: number }) => {
+        assert.equal(error.status, 422);
+        return true;
+      },
+    );
+
+    assert.equal(await ds.getRepository(Reserva).count(), 0);
+    assert.equal(await ds.getRepository(Pago).count(), 0);
+  });
+
+  it('rechaza un pago sin método o con monto inválido', async () => {
+    await assert.rejects(
+      () =>
+        service.crearReserva(
+          { fecha_tour_id: fechaId, pago: { metodo_clave: '', monto: '10' } },
+          usuarioId,
+        ),
+      (error: { status?: number }) => {
+        assert.equal(error.status, 422);
+        return true;
+      },
+    );
+    await assert.rejects(
+      () =>
+        service.crearReserva(
+          { fecha_tour_id: fechaId, pago: { metodo_clave: 'transferencia', monto: '0' } },
+          usuarioId,
+        ),
+      (error: { status?: number }) => {
+        assert.equal(error.status, 422);
+        return true;
+      },
+    );
+
+    assert.equal(await ds.getRepository(Reserva).count(), 0);
   });
 });
