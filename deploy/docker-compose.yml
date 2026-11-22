@@ -1,0 +1,36 @@
+# ──────────────────────────────────────────────────────────────────────────
+# Producción — api.escapatetour.app (Fase 4 del plan)
+#
+# Ubicación en el server: /opt/escapatetour/backend/docker-compose.yml
+# El .env real vive al lado (/opt/escapatetour/backend/.env) — NO versionar.
+# El workflow deploy-production.yml hace: pull && up -d en este archivo.
+# ──────────────────────────────────────────────────────────────────────────
+
+services:
+  api:
+    # La tag la fija el CD (ghcr.io/jazz09a/backend-crm-viajes:latest).
+    image: ghcr.io/jazz09a/backend-crm-viajes:latest
+    container_name: agencia-viajes-api
+    restart: unless-stopped
+    ports:
+      # Sólo loopback: nginx (api.) hace de terminador TLS.
+      - "127.0.0.1:8100:8000"
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "8000"
+    volumes:
+      # Comprobantes, firmas, vouchers y exportaciones (STORAGE_DRIVER=local).
+      - ./data:/app/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:8000/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 30s
+      timeout: 5s
+      # Arranque: migraciones + seed idempotente + importador de catálogo.
+      start_period: 60s
+      retries: 3
