@@ -108,6 +108,21 @@ function definicionFormulario(tourClave: string) {
       ],
     },
     {
+      id: 'sabor_desayuno',
+      label: 'Sabor del desayuno',
+      ayuda: 'Selecciona el sabor de empanada para cada pasajero.',
+      tipo: 'multiselect',
+      alcance: 'por_pasajero',
+      obligatorio: false,
+      grupo: 'comida',
+      opciones: [
+        { valor: 'cazon', label: 'Cazón' },
+        { valor: 'molida', label: 'Molida' },
+        { valor: 'pollo', label: 'Pollo' },
+        { valor: 'queso', label: 'Queso' },
+      ],
+    },
+    {
       id: 'tiene_alergias',
       label: '¿Tiene alergias o condiciones médicas?',
       ayuda: 'Marca la casilla si hay alguna alergia, intolerancia o condición a considerar.',
