@@ -20,11 +20,11 @@ Carga del catálogo de **Escapate Tours** (transcrito del chat de WhatsApp del
 
 ```bash
 cd backend
-npm run importar:escapate -- --dry-run     # simula: no escribe nada
-npm run importar:escapate                  # importa
-npm run importar:escapate -- --archivar-demo          # además archiva los tours demo
-npm run importar:escapate -- --actualizar-precios      # sobrescribe tarifas existentes
-npm run importar:escapate -- --file=mi-catalogo.json     # otro catálogo
+pnpm importar:escapate -- --dry-run     # simula: no escribe nada
+pnpm importar:escapate                  # importa
+pnpm importar:escapate -- --archivar-demo          # además archiva los tours demo
+pnpm importar:escapate -- --actualizar-precios      # sobrescribe tarifas existentes
+pnpm importar:escapate -- --file=mi-catalogo.json     # otro catálogo
 ```
 
 El importador es **idempotente**: se puede reejecutar sin duplicar nada.
@@ -195,8 +195,8 @@ a `DATABASE_URL`:
 
 ```bash
 cd backend
-DB_DRIVER=postgres DATABASE_URL=... npm run importar:escapate -- --dry-run
-DB_DRIVER=postgres DATABASE_URL=... npm run importar:escapate
+DB_DRIVER=postgres DATABASE_URL=... pnpm importar:escapate -- --dry-run
+DB_DRIVER=postgres DATABASE_URL=... pnpm importar:escapate
 ```
 
 En el contenedor de Koyeb el catálogo se copia con la imagen (`Dockerfile`) y
@@ -205,8 +205,8 @@ el importador se ejecuta con `node dist/database/importar-escapate.js`.
 ## Actualizar el catálogo
 
 1. Editar `catalogo-escapate.json` (los `fechas` son **días de salida**).
-2. `npm run importar:escapate -- --dry-run` y revisar el informe.
-3. `npm run importar:escapate -- --actualizar-precios` si cambiaron precios.
+2. `pnpm importar:escapate -- --dry-run` y revisar el informe.
+3. `pnpm importar:escapate -- --actualizar-precios` si cambiaron precios.
 
 ## Pendiente conocido (fase 2)
 

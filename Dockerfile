@@ -20,14 +20,17 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 
-COPY package.json package-lock.json ./
-RUN npm ci
+# pnpm vía corepack (la versión viene de `packageManager` en package.json).
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 # Catálogo de Escapate Tours (fuente de verdad del importador).
 COPY catalogo-escapate.json ./
-RUN npm run build && npm prune --omit=dev
+RUN pnpm build && pnpm prune --prod
 
 # ── Etapa 2: runtime ──────────────────────────────────────────────────────
 FROM node:22-bookworm-slim AS runner
@@ -40,7 +43,9 @@ COPY --from=builder /app/node_modules ./node_modules
 
 # Chromium + libs del sistema para renderizar los vouchers a PDF.
 # OJO: sin --no-shell: chromium.launch(headless) usa chrome-headless-shell.
-RUN npx playwright install --with-deps chromium \
+# playwright es dependencia de producción; se invoca por su bin directo
+# (sin npx/npm para no depender del gestor de paquetes).
+RUN node node_modules/playwright/cli.js install --with-deps chromium \
   && chown -R node:node /ms-playwright
 
 COPY --from=builder /app/dist ./dist

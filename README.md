@@ -9,13 +9,13 @@ desarrollo/tests (`synchronize`), PostgreSQL en producción (`DATABASE_URL`).
 ## Arranque
 
 ```bash
-npm install
-npm run seed        # datos demo (usuarios, catálogo, fechas, tarifas, promos)
-npm run start:dev   # http://localhost:3001/api/v1
+pnpm install
+pnpm seed        # datos demo (usuarios, catálogo, fechas, tarifas, promos)
+pnpm start:dev   # http://localhost:3001/api/v1
 ```
 
-Otros comandos: `npm run typecheck`, `npm run build`, `npm run test`,
-`npm run start:prod`.
+Otros comandos: `pnpm typecheck`, `pnpm build`, `pnpm test`,
+`pnpm start:prod`.
 
 ## Primer arranque (onboarding)
 
@@ -39,7 +39,7 @@ peticiones simultáneas producen una sola alta y la otra recibe 409
 En desarrollo, para ver el onboarding hay que sembrar sin usuarios:
 
 ```bash
-SEED_DEMO=false npm run seed   # base vacía → /instalar
+SEED_DEMO=false pnpm seed   # base vacía → /instalar
 ```
 
 `SEED_ADMIN_CORREO` + `SEED_ADMIN_PASSWORD` siguen existiendo, pero sólo se
@@ -178,7 +178,7 @@ Ver `.env.example`. Destacadas:
 - `STORAGE_DRIVER=local|s3`, `STORAGE_LOCAL_DIR`, `S3_*`,
   `STORAGE_SIGNED_URL_TTL_SECONDS`, `PUBLIC_APP_URL`, `FILE_SIGNING_SECRET`.
 - En producción Playwright requiere los binarios de Chromium
-  (`npx playwright install chromium` o imagen con ellos).
+  (`pnpm exec playwright install chromium` o imagen con ellos).
 
 ## Pendientes conocidos
 
