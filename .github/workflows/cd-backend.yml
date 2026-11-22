@@ -1,0 +1,39 @@
+name: CD — Backend Producción
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Desplegar backend a producción
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login a GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build y push imagen backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/jazz09a/backend-crm-viajes:latest
+          platforms: linux/amd64
+
+      - name: Desplegar en servidor (docker compose)
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && echo "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan 62.171.175.92 >> ~/.ssh/known_hosts 2>/dev/null
+          ssh alvaro@62.171.175.92 \
+            'docker pull ghcr.io/jazz09a/backend-crm-viajes:latest &&
+             docker compose -f /home/alvarovargas/Desktop/AGENCIA-VIAJES/backend/docker-compose.yml up -d &&
+             sleep 5 &&
+             curl -sf https://api.escapatetour.app/api/v1/ready > /dev/null && echo "BACKEND_OK" || echo "BACKEND_FAILED"'
