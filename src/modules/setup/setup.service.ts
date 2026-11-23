@@ -103,7 +103,16 @@ export class SetupService {
         agencia_configurada_en: new Date().toISOString(),
       };
       for (const [clave, valor] of Object.entries(datosAgencia)) {
-        await repoConfig.save(repoConfig.create({ clave, valor, actualizado_en: new Date() }));
+        // Upsert por clave: el seed ya crea `agencia_*` en toda instalación,
+        // así que un INSERT a ciegas chocaba con el índice único (500).
+        const fila = await repoConfig.findOne({ where: { clave } });
+        if (fila) {
+          fila.valor = valor;
+          fila.actualizado_en = new Date();
+          await repoConfig.save(fila);
+        } else {
+          await repoConfig.save(repoConfig.create({ clave, valor, actualizado_en: new Date() }));
+        }
       }
 
       return nuevo;
