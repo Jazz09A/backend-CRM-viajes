@@ -1,0 +1,29 @@
+services:
+  api:
+    # La tag la fija el CD (build y push en cd-backend.yml).
+    image: ghcr.io/jazz09a/backend-crm-viajes:latest
+    container_name: agencia-viajes-api
+    restart: unless-stopped
+    env_file:
+      - /home/alvaro/.env.prod
+    environment:
+      NODE_ENV: production
+      PORT: "8000"
+    ports:
+      # Sólo loopback: nginx (api.escapatetour.app) termina el TLS en 443.
+      - "127.0.0.1:8100:8000"
+    volumes:
+      # Comprobantes, firmas, vouchers y exportaciones (STORAGE_DRIVER=local).
+      - /home/alvaro/data/storage:/app/data/storage
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:8000/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 30s
+      timeout: 5s
+      # Arranque: migraciones + seed idempotente + importador de catálogo.
+      start_period: 60s
+      retries: 3
