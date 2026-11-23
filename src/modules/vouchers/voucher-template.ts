@@ -2,7 +2,7 @@
  * Template HTML para el voucher de reserva.
  *
  * Diseño limpio y profesional con:
- * - Logo/marca Ruta Clara
+ * - Logo/marca Escapate Tours
  * - Código de reserva, tour, salida
  * - Pasajeros con categoría y selecciones
  * - Desglose de pagos
@@ -10,7 +10,11 @@
  * - Términos y firma
  */
 
+import { LOGO_ESCAPATE_DATA_URL } from './logo-escapate';
+
 export interface VoucherTemplateData {
+  /** Nombre de la agencia impreso en el voucher (config `agencia_nombre`). */
+  agenciaNombre: string;
   codigoReserva: string;
   titularNombre: string;
   tourNombre: string;
@@ -97,10 +101,10 @@ export function generarHtmlVoucher(datos: VoucherTemplateData): string {
       padding-bottom: 15px;
       margin-bottom: 20px;
     }
-    .logo {
-      font-size: 24px;
-      font-weight: bold;
-      color: #2563eb;
+    .logo-img {
+      height: 56px;
+      width: auto;
+      display: block;
     }
     .voucher-title {
       font-size: 18px;
@@ -291,7 +295,7 @@ export function generarHtmlVoucher(datos: VoucherTemplateData): string {
 <body>
   <div class="header">
     <div>
-      <div class="logo">Ruta Clara</div>
+      <img class="logo-img" src="${LOGO_ESCAPATE_DATA_URL}" alt="Escapate Tours">
       <div class="voucher-title">Voucher de Reserva</div>
       <div class="codigo">${datos.codigoReserva}</div>
     </div>
@@ -341,7 +345,7 @@ export function generarHtmlVoucher(datos: VoucherTemplateData): string {
         <div class="firma-linea"></div>
       </div>
       <div class="firma-rol">Por la empresa</div>
-      <div class="firma-nombre">Ruta Clara Viajes</div>
+      <div class="firma-nombre">${datos.agenciaNombre}</div>
       <div class="firma-fecha">Emitido: ${datos.emitidoEn}</div>
     </div>
     <div class="firma-bloque">
@@ -363,7 +367,7 @@ export function generarHtmlVoucher(datos: VoucherTemplateData): string {
     <div>Emitido: ${datos.emitidoEn}</div>
     <div>Términos: v${datos.terminosVersion}</div>
     <div class="terminos">
-      Este voucher es un comprobante de reserva. Para cualquier consulta, contacta a Ruta Clara Viajes.
+      Este voucher es un comprobante de reserva. Para cualquier consulta, contacta a ${datos.agenciaNombre}.
     </div>
   </div>
 </body>

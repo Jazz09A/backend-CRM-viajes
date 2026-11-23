@@ -1,5 +1,5 @@
 # ──────────────────────────────────────────────────────────────────────────
-# Ruta Clara — API NestJS (backend)
+# Escapate Tours — API NestJS (backend)
 #
 # Multi-etapa: compila TS + nativos (better-sqlite3) en `builder`, y en
 # `runner` sólo el runtime + Chromium de Playwright (generación de vouchers

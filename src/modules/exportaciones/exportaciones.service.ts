@@ -193,7 +193,7 @@ export class ExportacionesService {
 
   private async generarWorkbook(tipo: TipoExportacion, filtros: Record<string, unknown>): Promise<Workbook> {
     const wb = new Workbook();
-    wb.creator = 'Ruta Clara Viajes';
+    wb.creator = 'Escapate Tours';
     wb.created = new Date();
 
     switch (tipo) {

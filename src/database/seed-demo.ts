@@ -193,7 +193,7 @@ function definicionFormulario(tourClave: string) {
 
 const CUERPO_TERMINOS_V2 = `## 1. Objeto del viaje
 
-Ruta Clara Viajes comercializa tours turísticos Full Days y fines de semana desde Caracas hacia destinos nacionales. La reserva formaliza el derecho del titular a ocupar el cupo asignado en la salida seleccionada y los servicios descritos en el itinerario del tour.
+Escapate Tours comercializa tours turísticos Full Days y fines de semana desde Caracas hacia destinos nacionales. La reserva formaliza el derecho del titular a ocupar el cupo asignado en la salida seleccionada y los servicios descritos en el itinerario del tour.
 
 ## 2. Responsabilidades del titular
 
@@ -217,7 +217,7 @@ El voucher emitido es un comprobante de reserva y no sustituye la factura fiscal
 
 const CUERPO_TERMINOS_V1 = `## 1. Objeto del viaje
 
-Ruta Clara Viajes comercializa tours turísticos Full Days y fines de semana desde Caracas. La reserva asigna un cupo en la salida seleccionada.
+Escapate Tours comercializa tours turísticos Full Days y fines de semana desde Caracas. La reserva asigna un cupo en la salida seleccionada.
 
 ## 2. Responsabilidades del titular
 
@@ -258,17 +258,17 @@ export async function ejecutarSeedDemo(ds: DataSource): Promise<void> {
 
   // ── usuarios demo ──────────────────────────────────────────────────
   const credenciales: { nombre: string; correo: string; roles: string[] }[] = [
-    { nombre: 'Manuel Rodríguez', correo: 'admin@rutaclara.ve', roles: ['superadmin'] },
-    { nombre: 'Carmen Díaz', correo: 'operador@rutaclara.ve', roles: ['operador'] },
-    { nombre: 'Luis Bracho', correo: 'validador@rutaclara.ve', roles: ['validador'] },
-    { nombre: 'Ana Rojas', correo: 'guia@rutaclara.ve', roles: ['guia'] },
-    { nombre: 'Patricia Bello', correo: 'admin.anterior@rutaclara.ve', roles: ['superadmin'] },
+    { nombre: 'Manuel Rodríguez', correo: 'admin@escapetour.app', roles: ['superadmin'] },
+    { nombre: 'Carmen Díaz', correo: 'operador@escapetour.app', roles: ['operador'] },
+    { nombre: 'Luis Bracho', correo: 'validador@escapetour.app', roles: ['validador'] },
+    { nombre: 'Ana Rojas', correo: 'guia@escapetour.app', roles: ['guia'] },
+    { nombre: 'Patricia Bello', correo: 'admin.anterior@escapetour.app', roles: ['superadmin'] },
   ];
   for (const c of credenciales) {
     const correo = c.correo.toLowerCase();
     const existe = await usuarios.findOne({ where: { correo } });
     if (existe) {
-      existe.activo = c.correo !== 'admin.anterior@rutaclara.ve';
+      existe.activo = c.correo !== 'admin.anterior@escapetour.app';
       existe.dos_fa_activo = false;
       existe.totp_secret_enc = null;
       await usuarios.save(existe);
@@ -280,7 +280,7 @@ export async function ejecutarSeedDemo(ds: DataSource): Promise<void> {
         correo,
         password_hash: hashPassword('demo1234'),
         roles: c.roles as Usuario['roles'],
-        activo: c.correo !== 'admin.anterior@rutaclara.ve',
+        activo: c.correo !== 'admin.anterior@escapetour.app',
         dos_fa_activo: false,
         totp_secret_enc: null,
       }),
@@ -331,14 +331,14 @@ export async function ejecutarSeedDemo(ds: DataSource): Promise<void> {
     ).id;
 
   // ── términos y condiciones ─────────────────────────────────────────
-  let plantillaTerm = await plantTerm.findOne({ where: { nombre: 'Términos y condiciones — Ruta Clara Viajes' } });
+  let plantillaTerm = await plantTerm.findOne({ where: { nombre: 'Términos y condiciones — Escapate Tours' } });
   if (plantillaTerm && !plantillaTerm.clave) {
     plantillaTerm.clave = 'ruta-clara-v1';
     plantillaTerm = await plantTerm.save(plantillaTerm);
   }
   if (!plantillaTerm) {
     plantillaTerm = await plantTerm.save(
-      plantTerm.create({ clave: 'ruta-clara-v1', nombre: 'Términos y condiciones — Ruta Clara Viajes' }),
+      plantTerm.create({ clave: 'ruta-clara-v1', nombre: 'Términos y condiciones — Escapate Tours' }),
     );
   }
   const versionesTerm = await plantTermVer.find({ where: { plantilla_id: plantillaTerm.id } });
@@ -575,7 +575,7 @@ export async function ejecutarSeedDemo(ds: DataSource): Promise<void> {
           { etiqueta: 'Banco', valor: 'Bancamiga' },
           { etiqueta: 'Número de cuenta', valor: '0102-0000-00-0000000000', copiable: true },
           { etiqueta: 'Tipo de cuenta', valor: 'Corriente' },
-          { etiqueta: 'Titular', valor: 'Ruta Clara Viajes C.A.' },
+          { etiqueta: 'Titular', valor: 'Escapate Tours C.A.' },
           { etiqueta: 'RIF', valor: 'J-40123456-7' },
         ],
         instrucciones: 'Realiza la transferencia y reporta el pago con la referencia exacta del banco.',
@@ -608,7 +608,7 @@ export async function ejecutarSeedDemo(ds: DataSource): Promise<void> {
       nombre: 'Zelle',
       moneda: 'USD',
       datos: {
-        items: [{ etiqueta: 'Correo', valor: 'pagos@rutaclara.ve', copiable: true }],
+        items: [{ etiqueta: 'Correo', valor: 'pagos@escapetour.app', copiable: true }],
         instrucciones: 'Envía el pago en dólares y reporta la referencia del correo de confirmación.',
       },
       campos: ['referencia', 'fecha_pago'],
@@ -621,7 +621,7 @@ export async function ejecutarSeedDemo(ds: DataSource): Promise<void> {
       nombre: 'Efectivo',
       moneda: 'USD',
       datos: {
-        items: [{ etiqueta: 'Caja', valor: 'Mostrador Ruta Clara, Av. Libertador' }],
+        items: [{ etiqueta: 'Caja', valor: 'Mostrador Escapate Tours, Av. Libertador' }],
         instrucciones: 'Paga en la agencia. El operador registra el pago en efectivo.',
       },
       campos: ['referencia'],
@@ -664,7 +664,7 @@ export async function ejecutarSeedDemo(ds: DataSource): Promise<void> {
   // ── tasa de cambio ─────────────────────────────────────────────────
   const tasaVigente = await tasas.findOne({ where: {} , order: { vigente_desde: 'DESC' } });
   if (!tasaVigente) {
-    const admin = await usuarios.findOne({ where: { correo: 'admin@rutaclara.ve' } });
+    const admin = await usuarios.findOne({ where: { correo: 'admin@escapetour.app' } });
     await tasas.save(
       tasas.create({
         tasa: '36.5000',

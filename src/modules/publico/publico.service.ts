@@ -157,7 +157,7 @@ export class PublicoService {
     const texto = (valor: unknown): string | null =>
       typeof valor === 'string' && valor.trim() ? valor.trim() : null;
     return {
-      nombre: texto(nombre) ?? 'Ruta Clara Viajes',
+      nombre: texto(nombre) ?? 'Escapate Tours',
       email: texto(email),
       telefono: texto(telefono),
       direccion: texto(direccion),

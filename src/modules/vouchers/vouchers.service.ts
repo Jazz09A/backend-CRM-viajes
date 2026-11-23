@@ -174,12 +174,17 @@ export class VouchersService {
     // El titular resume la salida en la cabecera; cada fila lleva su propio punto.
     const puntoAbordaje = titular ? puntoDePasajero(titular) : nombrePunto(claveGlobal);
 
-    const [firmaEmpresaDataUrl, firmaCliente] = await Promise.all([
+    const [firmaEmpresaDataUrl, firmaCliente, configAgencia] = await Promise.all([
       this.dataUrlFirmaEmpresa(),
       firmaVigente
         ? this.firmaClienteDataUrl(firmaVigente)
         : Promise.resolve({ dataUrl: '', archivoPerdido: false }),
+      this.configRepo.findOne({ where: { clave: 'agencia_nombre' } }),
     ]);
+    const agenciaNombre =
+      typeof configAgencia?.valor === 'string' && configAgencia.valor.trim()
+        ? configAgencia.valor
+        : 'Escapate Tours';
 
     // Versión legible de los términos que firmó el titular (número de la
     // versión, no el UUID).
@@ -191,6 +196,7 @@ export class VouchersService {
     const terminosVersion = versionTerminos ? `v${versionTerminos.version}` : '';
 
     return {
+      agenciaNombre,
       codigoReserva: reserva.codigo ?? reserva.ref_corta ?? reserva.id,
       titularNombre: titular?.nombre ?? 'Cliente',
       tourNombre: tour.nombre,

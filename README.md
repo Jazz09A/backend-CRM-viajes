@@ -1,4 +1,4 @@
-# Backend — Ruta Clara Viajes API
+# Backend — Escapate Tours API
 
 API NestJS + Fastify + TypeORM del sistema de reservas. SQLite en
 desarrollo/tests (`synchronize`), PostgreSQL en producción (`DATABASE_URL`).
