@@ -9,13 +9,13 @@ export class ReservasController {
   constructor(private readonly service: ReservasService) {}
 
   @Post()
-  @Roles('operador', 'superadmin')
+  @Roles('operador', 'superadmin', 'administrador')
   crear(@Body() dto: CrearReservaDto, @CurrentUser() user: UsuarioActual) {
     return this.service.crear(dto, user.id);
   }
 
   @Get()
-  @Roles('operador', 'validador', 'superadmin')
+  @Roles('operador', 'validador', 'superadmin', 'administrador')
   listar(
     @Query('tour_id') tour_id?: string,
     @Query('fecha_tour_id') fecha_tour_id?: string,
@@ -29,31 +29,31 @@ export class ReservasController {
   }
 
   @Get(':id')
-  @Roles('operador', 'validador', 'superadmin')
+  @Roles('operador', 'validador', 'superadmin', 'administrador')
   detalle(@Param('id') id: string) {
     return this.service.detalle(id);
   }
 
   @Post(':id/cancelar')
-  @Roles('operador', 'superadmin')
+  @Roles('operador', 'superadmin', 'administrador')
   cancelar(@Param('id') id: string, @Body() dto: CancelarReservaDto, @CurrentUser() user: UsuarioActual) {
     return this.service.cancelar(id, dto, user.id);
   }
 
   @Post(':id/reactivar')
-  @Roles('operador', 'superadmin')
+  @Roles('operador', 'superadmin', 'administrador')
   reactivar(@Param('id') id: string, @CurrentUser() user: UsuarioActual) {
     return this.service.reactivar(id, user.id);
   }
 
   @Post(':id/enlace/regenerar')
-  @Roles('operador', 'superadmin')
+  @Roles('operador', 'superadmin', 'administrador')
   regenerar(@Param('id') id: string, @CurrentUser() user: UsuarioActual) {
     return this.service.regenerarEnlace(id, user.id);
   }
 
   @Post(':id/extender-hold')
-  @Roles('operador', 'superadmin')
+  @Roles('operador', 'superadmin', 'administrador')
   extender(@Param('id') id: string, @Body() dto: ExtenderHoldDto, @CurrentUser() user: UsuarioActual) {
     return this.service.extenderHold(id, dto.horas, dto.motivo, user.id);
   }

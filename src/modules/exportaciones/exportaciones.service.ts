@@ -20,13 +20,13 @@ import { UsuarioActual } from '../../common/decorators/current-user.decorator';
 import { Rol } from '../../common/decorators/roles.decorator';
 
 const PERMISOS_POR_TIPO: Record<TipoExportacion, Rol[]> = {
-  reservas: ['superadmin', 'operador', 'validador'],
-  tours: ['superadmin', 'operador'],
-  pasajeros_tour: ['superadmin', 'operador', 'guia'],
-  clientes: ['superadmin', 'operador'],
-  pagos: ['superadmin', 'validador'],
-  manifest: ['superadmin', 'operador', 'guia'],
-  cocina: ['superadmin', 'operador', 'guia'],
+  reservas: ['superadmin', 'administrador', 'operador', 'validador'],
+  tours: ['superadmin', 'administrador', 'operador'],
+  pasajeros_tour: ['superadmin', 'administrador', 'operador', 'guia'],
+  clientes: ['superadmin', 'administrador', 'operador'],
+  pagos: ['superadmin', 'administrador', 'validador'],
+  manifest: ['superadmin', 'administrador', 'operador', 'guia'],
+  cocina: ['superadmin', 'administrador', 'operador', 'guia'],
 };
 
 const NOMBRES_ARCHIVO: Record<TipoExportacion, string> = {
@@ -88,7 +88,7 @@ export class ExportacionesService {
    * Lista exportaciones del usuario (o todas para superadmin).
    */
   async listar(usuario: UsuarioActual): Promise<Exportacion[]> {
-    const esSuperadmin = usuario.roles.includes('superadmin');
+    const esSuperadmin = usuario.roles.some((r) => r === 'superadmin' || r === 'administrador');
     const where = esSuperadmin ? {} : { solicitada_por: usuario.id };
     return this.exportaciones.find({
       where,
@@ -105,7 +105,7 @@ export class ExportacionesService {
     if (!exportacion) throw ApiError.noEncontrado('Exportación');
 
     // Solo el solicitante o superadmin puede ver
-    const esSuperadmin = usuario.roles.includes('superadmin');
+    const esSuperadmin = usuario.roles.some((r) => r === 'superadmin' || r === 'administrador');
     if (!esSuperadmin && exportacion.solicitada_por !== usuario.id) {
       throw ApiError.sinPermiso('ver esta exportación');
     }

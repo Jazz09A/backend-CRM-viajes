@@ -6,7 +6,7 @@ import { ApiError } from '../../common/errors';
 import { ActualizarUsuarioDto, CrearUsuarioDto } from './usuarios.dto';
 import { Rol } from '../../common/decorators/roles.decorator';
 
-const ROLES_VALIDOS: Rol[] = ['superadmin', 'operador', 'validador', 'guia'];
+const ROLES_VALIDOS: Rol[] = ['superadmin', 'administrador', 'operador', 'validador', 'guia'];
 
 @Injectable()
 export class UsuariosService {

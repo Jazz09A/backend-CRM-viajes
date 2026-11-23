@@ -26,7 +26,7 @@ export class FechasController {
   }
 
   @Post('tours/:id/fechas')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   crear(@Param('id') tourId: string, @Body() dto: CrearFechaDto) {
     return this.service.crear(tourId, dto);
   }
@@ -37,43 +37,43 @@ export class FechasController {
   }
 
   @Patch('fechas/:id')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   actualizar(@Param('id') id: string, @Body() dto: ActualizarFechaDto) {
     return this.service.actualizar(id, dto);
   }
 
   @Post('fechas/:id/publicar')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   publicar(@Param('id') id: string, @CurrentUser() user: UsuarioActual) {
     return this.service.cambiarEstado(id, 'publicar', user.id);
   }
 
   @Post('fechas/:id/cerrar')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   cerrar(@Param('id') id: string, @Body() dto: MotivoDto, @CurrentUser() user: UsuarioActual) {
     return this.service.cambiarEstado(id, 'cerrar', user.id, dto.motivo);
   }
 
   @Post('fechas/:id/reabrir')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   reabrir(@Param('id') id: string, @CurrentUser() user: UsuarioActual) {
     return this.service.cambiarEstado(id, 'reabrir', user.id);
   }
 
   @Post('fechas/:id/cancelar')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   cancelar(@Param('id') id: string, @Body() dto: MotivoDto, @CurrentUser() user: UsuarioActual) {
     return this.service.cambiarEstado(id, 'cancelar', user.id, dto.motivo);
   }
 
   @Post('fechas/:id/sobrecupo')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   sobrecupo(@Param('id') id: string, @Body() dto: SobrecupoDto, @CurrentUser() user: UsuarioActual) {
     return this.service.sobrecupo(id, dto, user.id);
   }
 
   @Delete('fechas/:id')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   eliminar(@Param('id') id: string) {
     return this.service.eliminar(id);
   }
