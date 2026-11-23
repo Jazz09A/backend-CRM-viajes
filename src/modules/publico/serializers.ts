@@ -425,9 +425,9 @@ export function configPublica(mapa: Map<string, unknown>): Record<string, unknow
   const get = <T>(k: string, def: T): T => (mapa.has(k) ? (mapa.get(k) as T) : def);
   const whatsapp = mapa.get('agencia_whatsapp') ?? mapa.get('whatsapp_agencia') ?? '+584121234567';
   return {
-    agencia_nombre: get('agencia_nombre', 'Ruta Clara Viajes'),
+    agencia_nombre: get('agencia_nombre', 'Escapate Tours'),
     agencia_whatsapp: whatsapp,
-    agencia_email: get('agencia_email', 'hola@rutaclara.ve'),
+    agencia_email: get('agencia_email', 'hola@escapetour.app'),
     agencia_direccion: get('agencia_direccion', 'Caracas, Venezuela'),
     idioma: 'es',
     zona_horaria: get('zona_horaria', 'America/Caracas'),
