@@ -111,7 +111,7 @@ export async function ejecutarSeed(ds: DataSource): Promise<void> {
   }
 }
 
-/** Permite correr `npm run seed` de forma independiente. */
+/** Permite correr `pnpm seed` de forma independiente. */
 async function main() {
   const config = loadConfig();
   const ds = crearDataSource(config);

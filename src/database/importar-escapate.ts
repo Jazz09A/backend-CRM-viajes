@@ -14,10 +14,10 @@
  *   - Tarifa    → por (`fecha_tour_id`, `categoria`)
  *
  * Uso:
- *   npm run importar:escapate -- --dry-run     # simula, no escribe
- *   npm run importar:escapate                  # importa
- *   npm run importar:escapate -- --archivar-demo
- *   npm run importar:escapate -- --archivar-demo --actualizar-precios
+ *   pnpm importar:escapate -- --dry-run     # simula, no escribe
+ *   pnpm importar:escapate                  # importa
+ *   pnpm importar:escapate -- --archivar-demo
+ *   pnpm importar:escapate -- --archivar-demo --actualizar-precios
  */
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';

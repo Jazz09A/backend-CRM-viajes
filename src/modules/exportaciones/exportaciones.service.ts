@@ -552,10 +552,14 @@ export class ExportacionesService {
       const almuerzo = respuestas?.almuerzo;
       if (almuerzo) conteoAlmuerzo.set(almuerzo, (conteoAlmuerzo.get(almuerzo) ?? 0) + 1);
 
-      const desayuno = respuestas?.sabor_desayuno;
-      if (desayuno) {
-        const opciones = Array.isArray(desayuno) ? desayuno : [desayuno];
+      // Sabores de desayuno (empanadas). El id del campo se autogenera con un
+      // sufijo cuando se agrega desde la biblioteca, así que se detecta por
+      // nombre y no por id exacto.
+      for (const [clave, valor] of Object.entries(respuestas ?? {})) {
+        if (!/sabor|desayuno/i.test(clave)) continue;
+        const opciones = Array.isArray(valor) ? valor : [valor];
         for (const opt of opciones) {
+          if (typeof opt !== 'string' || !opt) continue;
           conteoDesayuno.set(opt, (conteoDesayuno.get(opt) ?? 0) + 1);
         }
       }

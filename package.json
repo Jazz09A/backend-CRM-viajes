@@ -2,6 +2,7 @@
   "name": "agencia-viajes-api",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.20.0",
   "description": "Backend CRM, formularios dinámicos y reservas — NestJS + TypeScript",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -18,6 +19,8 @@
     "@aws-sdk/s3-request-presigner": "^3.1164.0",
     "@fastify/cors": "^11.0.0",
     "@fastify/multipart": "^9.4.0",
+    "@neon/config": "^1.14.6",
+    "@neon/env": "^2.1.9",
     "@nestjs/common": "^11.1.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.0",
@@ -30,6 +33,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "exceljs": "^4.4.0",
+    "fastify": "^5.11.3",
     "pg": "^8.16.0",
     "playwright": "^1.65.0",
     "qrcode": "^1.5.4",
@@ -40,6 +44,8 @@
     "ws": "^8.22.1"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.15.5",
