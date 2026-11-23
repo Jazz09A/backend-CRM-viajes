@@ -20,7 +20,7 @@ import { CurrentUser, UsuarioActual } from '../../common/decorators/current-user
  * canónicos (/reservas, /pagos, /tours...) con el mismo servicio.
  */
 @Controller('adminfx')
-@Roles('superadmin', 'operador', 'validador', 'guia')
+@Roles('superadmin', 'administrador', 'operador', 'validador', 'guia')
 export class AdminFxController {
   constructor(private readonly service: AdminFxService) {}
 
@@ -42,6 +42,7 @@ export class AdminFxController {
   }
 
   @Get('auditoria')
+  @Roles('superadmin')
   auditoria(
     @Query('entidad') entidad?: string,
     @Query('usuario_id') usuario_id?: string,
@@ -58,7 +59,7 @@ export class AdminFxController {
   }
 
   @Post('reservas')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   crearReserva(@Body() body: Record<string, unknown>, @CurrentUser() user: UsuarioActual) {
     return this.service.crearReserva(body as never, user.id);
   }
@@ -74,31 +75,31 @@ export class AdminFxController {
   }
 
   @Post('reservas/:id/enlace/regenerar')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   regenerarEnlace(@Param('id') id: string, @Body() _body: Record<string, unknown>, @CurrentUser() user: UsuarioActual) {
     return this.service.regenerarEnlace(id, user.id);
   }
 
   @Post('reservas/:id/enlace/revocar')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   revocarEnlace(@Param('id') id: string, @Body() body: Record<string, unknown>, @CurrentUser() user: UsuarioActual) {
     return this.service.revocarEnlace(id, String(body.motivo ?? ''), user.id);
   }
 
   @Post('reservas/:id/hold')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   extenderHold(@Param('id') id: string, @Body() body: Record<string, unknown>, @CurrentUser() user: UsuarioActual) {
     return this.service.extenderHold(id, Number(body.horas ?? 24), String(body.motivo ?? ''), user.id);
   }
 
   @Post('reservas/:id/editar')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   editarReserva(@Param('id') id: string, @Body() body: { motivo: string; cambios: Record<string, unknown> }, @CurrentUser() user: UsuarioActual) {
     return this.service.editarReserva(id, body, user.id);
   }
 
   @Put('reservas/:id/precio')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   guardarPrecio(@Param('id') id: string, @Body() body: Record<string, unknown>, @CurrentUser() user: UsuarioActual) {
     return this.service.guardarPrecio(id, body as never, user.id);
   }
@@ -114,19 +115,19 @@ export class AdminFxController {
   }
 
   @Post('reservas/:id/cancelar')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   cancelarReserva(@Param('id') id: string, @Body() body: Record<string, unknown>, @CurrentUser() user: UsuarioActual) {
     return this.service.cancelarReserva(id, body as never, user.id);
   }
 
   @Post('reservas/:id/reprogramar')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   reprogramar(@Param('id') id: string, @Body() body: Record<string, unknown>, @CurrentUser() user: UsuarioActual) {
     return this.service.reprogramar(id, body as never, user.id);
   }
 
   @Post('reservas/:id/reactivar')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   reactivar(@Param('id') id: string, @Body() _body: Record<string, unknown>, @CurrentUser() user: UsuarioActual) {
     return this.service.reactivar(id, user.id);
   }
@@ -136,7 +137,7 @@ export class AdminFxController {
    * código y encola la generación del voucher.
    */
   @Post('reservas/:id/confirmar')
-  @Roles('superadmin', 'operador', 'validador')
+  @Roles('superadmin', 'administrador', 'operador', 'validador')
   confirmarReserva(@Param('id') id: string, @Body() body: { motivo?: string }, @CurrentUser() user: UsuarioActual) {
     return this.service.confirmarReserva(id, body, user.id);
   }
@@ -154,13 +155,13 @@ export class AdminFxController {
   }
 
   @Post('pagos/:id/validar')
-  @Roles('superadmin', 'validador')
+  @Roles('superadmin', 'administrador', 'validador')
   validarPago(@Param('id') id: string, @Body() body: Record<string, unknown>, @CurrentUser() user: UsuarioActual) {
     return this.service.validarPago(id, body as never, user.id);
   }
 
   @Post('pagos/:id/efectivo')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   pagoEfectivo(@Param('id') id: string, @Body() body: { monto: string; referencia?: string; nota?: string }, @CurrentUser() user: UsuarioActual) {
     return this.service.registrarPagoEfectivo(id, body, user.id);
   }
@@ -170,7 +171,7 @@ export class AdminFxController {
    * el pago nace aprobado, sin cola ni validación.
    */
   @Post('reservas/:id/pagos')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   registrarPagoReserva(
     @Param('id') id: string,
     @Body() body: { metodo_clave: string; monto: string; moneda?: string; fecha_pago?: string; referencia?: string; nota?: string },
@@ -180,7 +181,7 @@ export class AdminFxController {
   }
 
   @Post('pagos/:id/reembolso')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   reembolso(@Param('id') id: string, @Body() body: { monto: string; metodo: string; motivo: string }, @CurrentUser() user: UsuarioActual) {
     return this.service.reembolsar(id, body, user.id);
   }
@@ -193,7 +194,7 @@ export class AdminFxController {
   }
 
   @Post('tours')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   crearTour(@Body() body: Record<string, unknown>) {
     return this.service.guardarTour(null, body);
   }
@@ -204,19 +205,19 @@ export class AdminFxController {
   }
 
   @Put('tours/:id')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   actualizarTour(@Param('id') id: string, @Body() body: Record<string, unknown>) {
     return this.service.guardarTour(id, body);
   }
 
   @Post('tours/:id/duplicar')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   duplicarTour(@Param('id') id: string) {
     return this.service.duplicarTour(id);
   }
 
   @Post('tours/:id/estado')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   estadoTour(@Param('id') id: string, @Body() body: { estado: 'activo' | 'archivado' }, @CurrentUser() user: UsuarioActual) {
     return this.service.cambiarEstadoTour(id, body.estado, user.id);
   }
@@ -229,31 +230,31 @@ export class AdminFxController {
   }
 
   @Post('tours/documento')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   crearDesdeDocumento(@Body() body: Record<string, unknown>, @CurrentUser() user: UsuarioActual) {
     return this.service.guardarDocumento(null, body, user.id);
   }
 
   @Put('tours/:id/documento')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   guardarDocumento(@Param('id') id: string, @Body() body: Record<string, unknown>, @CurrentUser() user: UsuarioActual) {
     return this.service.guardarDocumento(id, body, user.id);
   }
 
   @Post('tours/:id/fechas-masivo')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   fechasMasivo(@Param('id') id: string, @Body() body: Record<string, unknown>) {
     return this.service.fechasMasivo(id, body);
   }
 
   @Post('tours/:id/formulario/plantilla')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   formularioPlantilla(@Param('id') id: string, @CurrentUser() user: UsuarioActual) {
     return this.service.formularioPlantilla(id, user.id);
   }
 
   @Put('tours/:id/puntos-abordaje')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   guardarPuntos(
     @Param('id') id: string,
     @Body() body: { puntos: { clave: string; hora: string; confirmar_hora?: boolean }[] },
@@ -282,19 +283,19 @@ export class AdminFxController {
   }
 
   @Post('fechas')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   guardarFecha(@Body() body: Record<string, unknown>) {
     return this.service.guardarFecha(body);
   }
 
   @Post('fechas/:id/cerrar')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   cerrarFecha(@Param('id') id: string, @Body() body: { expirar_pendientes: boolean; motivo?: string }, @CurrentUser() user: UsuarioActual) {
     return this.service.cerrarFecha(id, body, user.id);
   }
 
   @Post('fechas/:id/cancelar')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   cancelarFecha(@Param('id') id: string, @Body() body: { motivo: string; confirmacion: string }, @CurrentUser() user: UsuarioActual) {
     return this.service.cancelarFecha(id, body, user.id);
   }
@@ -305,19 +306,19 @@ export class AdminFxController {
   }
 
   @Post('fechas/:id/sobrecupo')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   sobrecupo(@Param('id') id: string, @Body() body: { cupos_extra: number; motivo: string; codigo_totp?: string }, @CurrentUser() user: UsuarioActual) {
     return this.service.autorizarSobrecupo(id, body, user.id);
   }
 
   @Post('tarifas')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   guardarTarifa(@Body() body: Record<string, unknown>) {
     return this.service.guardarTarifa(body);
   }
 
   @Delete('tarifas/:id')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   eliminarTarifa(@Param('id') id: string) {
     return this.service.eliminarTarifa(id);
   }
@@ -328,13 +329,13 @@ export class AdminFxController {
   }
 
   @Post('tours/:tourId/formulario')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   guardarFormulario(@Param('tourId') tourId: string, @Body() body: { definicion: { campos: Record<string, unknown>[] } }, @CurrentUser() user: UsuarioActual) {
     return this.service.guardarFormulario(tourId, body, user.id);
   }
 
   @Post('tours/:tourId/formulario/publicar')
-  @Roles('superadmin', 'operador')
+  @Roles('superadmin', 'administrador', 'operador')
   publicarFormulario(@Param('tourId') tourId: string, @CurrentUser() user: UsuarioActual) {
     return this.service.publicarFormulario(tourId, user.id);
   }
@@ -383,43 +384,43 @@ export class AdminFxController {
   }
 
   @Put('configuracion')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   guardarConfiguracion(@Body() body: Record<string, unknown>, @CurrentUser() user: UsuarioActual) {
     return this.service.guardarConfiguracion(body, user.id);
   }
 
   @Post('tasas')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   registrarTasa(@Body() body: { valor: string }, @CurrentUser() user: UsuarioActual) {
     return this.service.registrarTasa(body, user.id);
   }
 
   @Post('metodos-pago')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   guardarMetodoPago(@Body() body: Record<string, unknown>) {
     return this.service.guardarMetodoPago(body);
   }
 
   @Post('terminos')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   publicarTerminos(@Body() body: { titulo: string; cuerpo: string }, @CurrentUser() user: UsuarioActual) {
     return this.service.publicarTerminos(body, user.id);
   }
 
   @Post('plantillas')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   guardarPlantilla(@Body() body: Record<string, unknown>) {
     return this.service.guardarPlantilla(body);
   }
 
   @Post('politicas')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   guardarPolitica(@Body() body: Record<string, unknown>) {
     return this.service.guardarPolitica(body);
   }
 
   @Post('promos')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   guardarPromo(@Body() body: Record<string, unknown>) {
     return this.service.guardarPromo(body);
   }
@@ -431,7 +432,7 @@ export class AdminFxController {
   }
 
   @Post('firma-empresa')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   subirFirmaEmpresa(
     @Body() body: { nombre: string; tamano: number; imagen_base64?: string },
     @CurrentUser() user: UsuarioActual,

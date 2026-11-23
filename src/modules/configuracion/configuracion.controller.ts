@@ -52,37 +52,37 @@ export class ConfiguracionController {
   constructor(private readonly service: ConfiguracionService) {}
 
   @Get('config')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   listar() {
     return this.service.listar();
   }
 
   @Get('config/:clave')
-  @Roles('superadmin', 'operador', 'validador')
+  @Roles('superadmin', 'administrador', 'operador', 'validador')
   obtener(@Param('clave') clave: string) {
     return this.service.obtener(clave);
   }
 
   @Put('config/:clave')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   guardar(@Param('clave') clave: string, @Body('valor') valor: unknown, @CurrentUser() user: UsuarioActual) {
     return this.service.guardar(clave, valor, user.id);
   }
 
   @Get('tasas-cambio')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   tasas() {
     return this.service.listarTasas();
   }
 
   @Get('tasas-cambio/vigente')
-  @Roles('superadmin', 'operador', 'validador')
+  @Roles('superadmin', 'administrador', 'operador', 'validador')
   tasaVigente() {
     return this.service.tasaVigente();
   }
 
   @Post('tasas-cambio')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   registrarTasa(@Body() dto: TasaDto, @CurrentUser() user: UsuarioActual) {
     return this.service.registrarTasa(dto.tasa, user.id, dto.nota);
   }
@@ -98,7 +98,7 @@ export class ConfiguracionController {
   }
 
   @Post('terminos/:id/versiones/:vid/publicar')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   publicarTerminos(@Param('id') id: string, @Param('vid') vid: string, @CurrentUser() user: UsuarioActual) {
     return this.service.publicarTerminos(id, vid, user.id);
   }
@@ -109,7 +109,7 @@ export class ConfiguracionController {
   }
 
   @Get('codigos-promocionales')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   promos() {
     return this.service.listarPromos();
   }
@@ -117,25 +117,25 @@ export class ConfiguracionController {
   // ── puntos de salida (catálogo global) ────────────────────────────────
 
   @Get('puntos-salida')
-  @Roles('superadmin', 'operador', 'validador')
+  @Roles('superadmin', 'administrador', 'operador', 'validador')
   puntos() {
     return this.service.listarPuntos(true);
   }
 
   @Post('puntos-salida')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   crearPunto(@Body() dto: PuntoSalidaBodyDto) {
     return this.service.crearPunto(dto);
   }
 
   @Put('puntos-salida/:id')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   actualizarPunto(@Param('id') id: string, @Body() dto: PuntoSalidaBodyDto) {
     return this.service.actualizarPunto(id, dto);
   }
 
   @Delete('puntos-salida/:id')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   eliminarPunto(@Param('id') id: string) {
     return this.service.eliminarPunto(id);
   }

@@ -25,7 +25,7 @@ export class ArchivosController {
   ) {}
 
   @Post()
-  @Roles('operador', 'superadmin', 'validador')
+  @Roles('operador', 'superadmin', 'administrador', 'validador')
   async subir(@Req() req: FastifyRequest, @CurrentUser() user: UsuarioActual) {
     const parte = await req.file();
     if (!parte) throw ApiError.validacion('Archivo requerido');
@@ -75,7 +75,7 @@ export class ArchivosController {
   }
 
   @Get(':id/url')
-  @Roles('operador', 'superadmin', 'validador')
+  @Roles('operador', 'superadmin', 'administrador', 'validador')
   async obtenerUrl(@Param('id') id: string, @CurrentUser() user: UsuarioActual) {
     const url = await this.archivosService.obtenerUrlFirmada(id);
     // La foto del documento de identidad es un dato sensible: cada consulta

@@ -19,25 +19,25 @@ export class PagosController {
   constructor(private readonly service: PagosService) {}
 
   @Get('pagos')
-  @Roles('validador', 'superadmin', 'operador')
+  @Roles('validador', 'superadmin', 'administrador', 'operador')
   cola(@Query('estado') estado?: string) {
     return this.service.cola(estado ?? 'aprobado');
   }
 
   @Get('pagos/:id')
-  @Roles('validador', 'superadmin', 'operador')
+  @Roles('validador', 'superadmin', 'administrador', 'operador')
   detalle(@Param('id') id: string) {
     return this.service.detalle(id);
   }
 
   @Post('pagos/:id/anular')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   anular(@Param('id') id: string, @Body() dto: AnularDto, @CurrentUser() user: UsuarioActual) {
     return this.service.anular(id, dto.motivo, user.id);
   }
 
   @Post('pagos/:id/reembolsos')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   reembolso(@Param('id') id: string, @Body() dto: ReembolsoDto, @CurrentUser() user: UsuarioActual) {
     return this.service.registrarReembolso(id, dto, user.id);
   }
