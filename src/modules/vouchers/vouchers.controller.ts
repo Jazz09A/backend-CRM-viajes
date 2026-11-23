@@ -14,19 +14,19 @@ export class VouchersController {
   constructor(private readonly service: VouchersService) {}
 
   @Get('reservas/:id/vouchers')
-  @Roles('operador', 'validador', 'superadmin')
+  @Roles('operador', 'validador', 'superadmin', 'administrador')
   listar(@Param('id') id: string) {
     return this.service.listarPorReserva(id);
   }
 
   @Post('reservas/:id/vouchers/regenerar')
-  @Roles('operador', 'superadmin')
+  @Roles('operador', 'superadmin', 'administrador')
   regenerar(@Param('id') id: string, @Body() dto: RegenerarDto) {
     return this.service.regenerar(id, dto.motivo);
   }
 
   @Get('vouchers/:id/descarga')
-  @Roles('operador', 'validador', 'superadmin')
+  @Roles('operador', 'validador', 'superadmin', 'administrador')
   descarga(@Param('id') id: string) {
     return this.service.urlDescarga(id);
   }

@@ -15,7 +15,7 @@ export class ReportesController {
   }
 
   @Get('dashboard')
-  @Roles('superadmin', 'operador', 'validador')
+  @Roles('superadmin', 'administrador', 'operador', 'validador')
   async dashboard() {
     const d = this.driver;
     const reservasPorEstado = await this.ds.query(
@@ -38,7 +38,7 @@ export class ReportesController {
   }
 
   @Get('reportes/ocupacion')
-  @Roles('superadmin', 'operador', 'guia')
+  @Roles('superadmin', 'administrador', 'operador', 'guia')
   ocupacion(@Query('desde') desde?: string, @Query('hasta') hasta?: string) {
     const params: string[] = [];
     let sql = `SELECT ft.id, ft.fecha_salida, ft.hora_salida, t.nombre AS tour,
@@ -53,7 +53,7 @@ export class ReportesController {
   }
 
   @Get('reportes/ventas')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   ventas(@Query('desde') desde?: string, @Query('hasta') hasta?: string) {
     void desde;
     void hasta;

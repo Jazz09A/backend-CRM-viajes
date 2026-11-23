@@ -29,7 +29,7 @@ export class ToursController {
   }
 
   @Post('tours')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   crear(@Body() dto: CrearTourDto, @CurrentUser() user: UsuarioActual) {
     return this.service.crear(dto, user.id);
   }
@@ -40,13 +40,13 @@ export class ToursController {
   }
 
   @Patch('tours/:id')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   actualizar(@Param('id') id: string, @Body() dto: ActualizarTourDto) {
     return this.service.actualizar(id, dto);
   }
 
   @Post('tours/:id/estado')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   cambiarEstado(@Param('id') id: string, @Body() dto: EstadoTourDto, @CurrentUser() user: UsuarioActual) {
     return this.service.cambiarEstado(id, dto.estado, user.id);
   }
@@ -57,7 +57,7 @@ export class ToursController {
   }
 
   @Put('tours/:id/puntos-abordaje')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   reemplazarPuntos(@Param('id') id: string, @Body() lista: PuntoAbordajeDto[]) {
     return this.service.reemplazarPuntos(id, lista);
   }
@@ -68,13 +68,13 @@ export class ToursController {
   }
 
   @Put('tours/:id/formulario/borrador')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   guardarBorrador(@Param('id') id: string, @Body() dto: BorradorFormDto) {
     return this.service.guardarBorrador(id, dto.definicion ?? {});
   }
 
   @Post('tours/:id/formulario/publicar')
-  @Roles('superadmin')
+  @Roles('superadmin', 'administrador')
   publicar(@Param('id') id: string, @CurrentUser() user: UsuarioActual) {
     return this.service.publicarFormulario(id, user.id);
   }

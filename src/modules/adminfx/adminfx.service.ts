@@ -76,7 +76,7 @@ const ROL_A_FE: Record<string, string> = {
   validador: 'VAL',
   guia: 'GU',
 };
-const ROL_A_BE: Record<string, string> = { SA: 'superadmin', OP: 'operador', VAL: 'validador', GU: 'guia' };
+const ROL_A_BE: Record<string, string> = { SA: 'superadmin', AD: 'administrador', OP: 'operador', VAL: 'validador', GU: 'guia' };
 
 @Injectable()
 export class AdminFxService {

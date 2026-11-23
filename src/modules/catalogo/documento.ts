@@ -682,7 +682,7 @@ export async function aplicarCatalogo(
 
   // ── autor de la importación ───────────────────────────────────────────
   const admin = (await em.getRepository(Usuario).find()).find((u) =>
-    (u.roles ?? []).includes('superadmin'),
+    (u.roles ?? []).some((r) => r === 'superadmin' || r === 'administrador'),
   );
   const autorId = admin?.id ?? null;
 

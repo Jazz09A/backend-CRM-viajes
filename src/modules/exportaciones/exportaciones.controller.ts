@@ -16,7 +16,7 @@ const TIPOS_VALIDOS: TipoExportacion[] = [
 ];
 
 @Controller('exportaciones')
-@Roles('superadmin', 'operador', 'validador', 'guia')
+@Roles('superadmin', 'administrador', 'operador', 'validador', 'guia')
 export class ExportacionesController {
   constructor(private readonly exportaciones: ExportacionesService) {}
 
