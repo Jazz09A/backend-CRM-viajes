@@ -66,16 +66,11 @@
   },
   "puntos_salida": [
     {
-      "clave": "guatire_castillejo",
-      "ciudad": "Guatire",
-      "nombre": "Emporium Nuevo Castillejo",
-      "referencia": "Ref. al lado del terminal de Guatire"
-    },
-    {
       "clave": "guatire_kiosco",
       "ciudad": "Guatire",
-      "nombre": "Kiosco blanco",
-      "referencia": "Diagonal a la antigua SAS, C.C. Castillejo"
+      "nombre": "Kiosco blanco (al lado de La Colmena)",
+      "referencia": "Al lado de La Colmena",
+      "seleccionable": false
     },
     {
       "clave": "guarenas_farmatodo",
@@ -138,7 +133,7 @@
       "descripcion": "Full day al Balneario Spa de Las Trincheras en Valencia, Estado Carabobo. Salida y retorno el mismo día con traslado privado, entrada a las aguas termales y todas las comidas.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "05:15"
         },
         {
@@ -205,7 +200,7 @@
       "descripcion": "Full day a La Playita 2 Kanaloa en Higuerote con traslado en lancha ida y vuelta y todas las comidas incluidas.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "06:30"
         },
         {
@@ -257,7 +252,7 @@
       "descripcion": "Full day a La Playita 2 Kanaloa en Higuerote sin comidas incluidas: transporte y lancha ida y vuelta.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "06:30"
         },
         {
@@ -309,7 +304,7 @@
       "descripcion": "Full day a Playa Caribe en Chuspa con promo de días de semana: transporte, lancha, comidas y actividades recreativas.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "06:00"
         },
         {
@@ -362,7 +357,7 @@
       "descripcion": "Full day a Playa El Indio en Chuspa con merienda, brindis, vaso personal playero y paseo al Río Guayabal.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "05:30"
         },
         {
@@ -418,7 +413,7 @@
       "descripcion": "Full day en jeeps exclusivos de 8 personas por la Colonia Tovar y el Junquito: recorrido por paradores turísticos, Chocolatico, fábrica de cerveza, vino coloniero y visita al Parque Macarao.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "06:00"
         },
         {
@@ -482,7 +477,7 @@
       "descripcion": "Full day a Punta Varadero en el Parque Nacional Morrocoy con salida la noche anterior desde Guarenas, Guatire y Caracas.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "21:00"
         },
         {
@@ -537,7 +532,7 @@
       "descripcion": "Full day a Playa Mero en Morrocoy con paseo a Bajo 360.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "21:00"
         },
         {
@@ -593,7 +588,7 @@
       "descripcion": "Full day a Cayo Playuela con paseo a Bajo 360 o Bajo los Juanes.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "21:00"
         },
         {
@@ -649,7 +644,7 @@
       "descripcion": "Full day a Cayo Boca Seca con paseo a Bajo 360.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "21:00"
         },
         {
@@ -706,7 +701,7 @@
       "descripcion": "Full day a Cayo Azul o Playa Sur con paseo a Bajo 360 o los Juanes.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "21:00"
         },
         {
@@ -764,7 +759,7 @@
       "descripcion": "Full day a Cayo Sal en Morrocoy.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "21:00"
         },
         {
@@ -817,7 +812,7 @@
       "descripcion": "Full day a Cayo Muerto con paseo corto: barco hundido, los canales, Túnel del Amor, Cueva de la Virgen, Cueva del Indio y Cayo Sombrero.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "21:00"
         },
         {
@@ -883,7 +878,7 @@
       "descripcion": "Full day a Cayo Muerto en Morrocoy.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "21:00"
         },
         {
@@ -941,7 +936,7 @@
       "descripcion": "Full day a Cayo Sombrero con paseo a Bajo 360 o Bajo los Juanes.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "21:00"
         },
         {
@@ -1304,7 +1299,7 @@
       "descripcion": "Full day a La Ciénaga en Ocumare de la Costa.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "21:00"
         },
         {
@@ -1361,7 +1356,7 @@
       "descripcion": "Full day a Catica en Ocumare de la Costa con traslado en lancha ida y vuelta.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "21:00"
         },
         {
@@ -1418,7 +1413,7 @@
       "descripcion": "Full day a Bahía Cata en Ocumare de la Costa.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "21:00"
         },
         {
@@ -1476,7 +1471,7 @@
           "hora": "12:30"
         },
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "12:00"
         },
         {
@@ -1537,7 +1532,7 @@
       "descripcion": "Fin de semana en el Hotel Mario de Morrocoy con piscina, habitaciones con aire y baño privado, 5 destinos a visitar y todas las comidas.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "21:00"
         },
         {
@@ -1590,7 +1585,7 @@
       "descripcion": "Fin de semana en Choroní: hospedaje en posada con piscina, transporte, lancha y recorrido por Tinikijima, Cepe, Puerto Escondido, Playa Grande, mirador del Cristo Rey, pueblo de Choroní, murales y ruta del cacao.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "19:00"
         },
         {
@@ -1657,7 +1652,7 @@
       "descripcion": "Mismo recorrido de Choroní que el plan básico, con las comidas incluidas en el precio.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "19:00"
         },
         {
@@ -1713,7 +1708,7 @@
       "descripcion": "Fin de semana en la Posada Villa Paraíso con todas las comidas, paseos en lancha por Playa Colorada, Isla Arapo, ruta de los delfines, islote Gato y el Ratón, Playa Piscina e Isla de Plata.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "23:00"
         },
         {
@@ -1775,7 +1770,7 @@
       "descripcion": "Fin de semana en la Posada Villa Paraíso con paseos a Aguas de Moisés y Playa Manare.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "23:00"
         },
         {
@@ -1833,7 +1828,7 @@
       "descripcion": "Fin de semana en la Posada Villa Paraíso con paseos a Isla de Plata y Playa Manare.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "23:00"
         },
         {
@@ -1892,7 +1887,7 @@
       "descripcion": "Fin de semana en la Posada Villa Paraíso con paseos a Playa Blanca e Isla el Faro.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "23:00"
         },
         {
@@ -1949,7 +1944,7 @@
       "descripcion": "Tres días en Mochima con hospedaje en la Posada Villa Paraíso: Aguas de Moisés, Isla de Plata, Playa Manare, Isla Piscina y ruta de los delfines.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "22:00"
         },
         {
@@ -2129,7 +2124,7 @@
           "hora": "19:00"
         },
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "20:00"
         },
         {
@@ -2188,7 +2183,7 @@
       "descripcion": "Viaje de inicio de año a Mérida con hotel céntrico, todas las comidas, teleférico hasta la última estación, santuario de colibríes y más de 18 sitios por visitar.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "17:30"
         },
         {
@@ -2263,7 +2258,7 @@
       "descripcion": "Cuatro días en Mérida con hotel céntrico, todas las comidas, teleférico Mukumbarí con todas las estaciones y más de 18 sitios por visitar.",
       "puntos": [
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "18:00"
         },
         {
@@ -2338,7 +2333,7 @@
           "hora": "20:00"
         },
         {
-          "clave": "guatire_castillejo",
+          "clave": "guatire_kiosco",
           "hora": "20:00"
         }
       ],

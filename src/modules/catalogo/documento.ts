@@ -149,6 +149,71 @@ export function normalizarItinerario(bruto: unknown): DocumentoItinerario[] {
  * son de referencia (el cliente elige «Caracas — punto por confirmar» y el
  * punto exacto se confirma por el grupo de viaje).
  */
+/** El desayuno del catálogo incluye empanadas: hay que pedir el relleno. */
+function tieneDesayunoEmpanadas(incluye: string[]): boolean {
+  return incluye.some((i) => /desayuno|empanada/i.test(i));
+}
+
+/**
+ * Campo del formulario base para el sabor de las empanadas del desayuno.
+ * Id estable (`sabor_desayuno`) para que la sincronización lo reconozca;
+ * los agregados a mano desde la biblioteca llevan sufijo aleatorio.
+ */
+export function campoSaborDesayuno(): Record<string, unknown> {
+  return {
+    id: 'sabor_desayuno',
+    label: '¿Qué sabor de empanada deseas?',
+    ayuda: 'El desayuno incluye empanadas: elige uno o dos sabores para cada pasajero.',
+    tipo: 'multiselect',
+    alcance: 'por_pasajero',
+    obligatorio: true,
+    aplica_a: ['Adulto', 'Tercera Edad', 'Niño'],
+    opciones: [
+      { valor: 'cazon', label: 'Cazón' },
+      { valor: 'molida', label: 'Molida' },
+      { valor: 'pollo', label: 'Pollo' },
+      { valor: 'queso', label: 'Queso' },
+    ],
+  };
+}
+
+/** `true` si la lista de campos ya tiene un campo de desayuno/empanadas. */
+function tieneCampoDesayuno(campos: Record<string, unknown>[]): boolean {
+  return campos.some((c) => /sabor|desayuno|empanada/i.test(String(c?.id ?? '')));
+}
+
+/**
+ * Fusiona los campos del formulario publicado con los del formulario base:
+ * actualiza `punto_abordaje` y agrega `sabor_desayuno` si falta, conservando
+ * los campos personalizados que el admin haya agregado a mano.
+ */
+export function fusionarCamposFormulario(
+  camposActuales: Record<string, unknown>[],
+  definicionBase: Record<string, unknown>[],
+): Record<string, unknown>[] {
+  const basePorId = new Map(definicionBase.map((c) => [String(c?.id ?? ''), c]));
+  const fusionados = camposActuales.map((c) => {
+    const id = String(c?.id ?? '');
+    // Los campos del sistema se reemplazan por la versión del catálogo
+    // (p. ej. las opciones de punto de salida cambian con el catálogo).
+    return basePorId.get(id) ?? c;
+  });
+
+  const desayunoBase = definicionBase.find((c) => c?.id === 'sabor_desayuno');
+  if (desayunoBase && !tieneCampoDesayuno(camposActuales)) {
+    fusionados.push(desayunoBase);
+  }
+  // El desayuno va primero que el almuerzo: se reubica aunque ya existiera
+  // en otra posición (formularios publicados antes del cambio de orden).
+  const idxDesayuno = fusionados.findIndex((c) => c?.id === 'sabor_desayuno');
+  const idxAlmuerzo = fusionados.findIndex((c) => c?.id === 'almuerzo');
+  if (idxDesayuno >= 0 && idxAlmuerzo >= 0 && idxDesayuno > idxAlmuerzo) {
+    const [desayuno] = fusionados.splice(idxDesayuno, 1);
+    fusionados.splice(idxAlmuerzo, 0, desayuno);
+  }
+  return fusionados;
+}
+
 export function formularioBase(opts: {
   incluye: string[];
   puntos: {
@@ -174,6 +239,11 @@ export function formularioBase(opts: {
       .filter((p) => p.seleccionable !== false)
       .map((p) => ({ valor: p.clave, label: p.nombre })),
   });
+
+  // El desayuno va primero: es lo primero que se consume en el viaje.
+  if (tieneDesayunoEmpanadas(opts.incluye)) {
+    campos.push(campoSaborDesayuno());
+  }
 
   const tieneComidas = opts.incluye.some((i) => /almuerzo|desayuno|merienda|cena/i.test(i));
   if (tieneComidas) {
@@ -431,21 +501,17 @@ export async function aplicarDocumentoTour(
       await repoFormularios.save(version);
       formularioPublicado = true;
     } else {
-      // Si cambió el punto de salida (salidas personalizadas, Caracas…),
-      // se publica una versión nueva y la anterior queda archivada.
+      // Si cambiaron los campos del sistema (punto de salida, desayuno de
+      // empanadas…), se fusionan con los campos publicados —así se conservan
+      // los campos personalizados del admin— y se publica una versión nueva.
       const camposActuales =
         ((publicado.definicion ?? {}) as { campos?: Record<string, unknown>[] }).campos ?? [];
-      const proyectar = (c: Record<string, unknown> | undefined) =>
-        JSON.stringify(
-          c
-            ? { label: c.label, ayuda: c.ayuda, permite_por_pasajero: c.permite_por_pasajero, opciones: c.opciones }
-            : null,
-        );
-      const actual = camposActuales.find((c) => c?.id === 'punto_abordaje');
-      const nuevo = (definicion.campos as Record<string, unknown>[]).find(
-        (c) => c?.id === 'punto_abordaje',
+      const fusionados = fusionarCamposFormulario(
+        camposActuales,
+        definicion.campos as Record<string, unknown>[],
       );
-      if (proyectar(actual) !== proyectar(nuevo)) {
+      const definicionFusionada = { ...(publicado.definicion ?? {}), campos: fusionados };
+      if (hashDefinicion(definicionFusionada) !== hashDefinicion(publicado.definicion ?? {})) {
         const todas = await repoFormularios.find({ where: { tour_id: tourId } });
         const maxVersion = Math.max(0, ...todas.map((v) => v.version));
         publicado.estado = 'archivada';
@@ -454,8 +520,8 @@ export async function aplicarDocumentoTour(
           tour_id: tourId,
           version: maxVersion + 1,
           estado: 'publicada',
-          definicion,
-          hash: hashDefinicion(definicion),
+          definicion: definicionFusionada,
+          hash: hashDefinicion(definicionFusionada),
           publicada_en: new Date(),
           publicada_por: ctx.autorId ?? null,
         });

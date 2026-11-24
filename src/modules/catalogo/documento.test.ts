@@ -198,6 +198,64 @@ describe('Documento de tour (el catálogo como contrato)', () => {
     assert.deepEqual(punto?.opciones, [{ valor: 'guatire_castillejo', label: 'Emporium Nuevo Castillejo' }]);
     // El tour incluye comidas → aparece la selección de almuerzo.
     assert.ok(campos.some((c) => c.id === 'almuerzo'));
+    // Y desayuno con empanadas → selección obligatoria del relleno.
+    const desayuno = campos.find((c) => c.id === 'sabor_desayuno');
+    assert.ok(desayuno);
+    assert.equal(desayuno.tipo, 'multiselect');
+    assert.equal(desayuno.alcance, 'por_pasajero');
+    assert.equal(desayuno.obligatorio, true);
+    assert.deepEqual(
+      (desayuno.opciones as { valor: string }[]).map((o) => o.valor),
+      ['cazon', 'molida', 'pollo', 'queso'],
+    );
+  });
+
+  it('sin desayuno en el incluye no agrega el campo de empanadas', async () => {
+    const ctx = await prepararCatalogo();
+    const doc = documento();
+    doc.incluye = ['Almuerzo playero + bebida'];
+    const resultado = await ds.transaction((em) => aplicarDocumentoTour(em, doc, ctx));
+
+    const forms = await ds
+      .getRepository(TourFormVersion)
+      .find({ where: { tour_id: resultado.tourId, estado: 'publicada' } });
+    const campos = (forms[0].definicion as { campos: Record<string, unknown>[] }).campos;
+    assert.ok(campos.some((c) => c.id === 'almuerzo'));
+    assert.ok(!campos.some((c) => /sabor|desayuno|empanada/i.test(String(c.id ?? ''))));
+  });
+
+  it('al reimportar fusiona el campo de desayuno sin borrar campos personalizados', async () => {
+    const ctx = await prepararCatalogo();
+    const doc = documento();
+    // Formulario "viejo": sin sabor_desayuno y con un campo del admin.
+    doc.incluye = ['Almuerzo playero + bebida'];
+    const { tourId } = await ds.transaction((em) => aplicarDocumentoTour(em, doc, ctx));
+    const repoForms = ds.getRepository(TourFormVersion);
+    const viejo = await repoForms.findOneOrFail({ where: { tour_id: tourId, estado: 'publicada' } });
+    const camposViejos = (viejo.definicion as { campos: Record<string, unknown>[] }).campos;
+    viejo.definicion = {
+      ...(viejo.definicion as Record<string, unknown>),
+      campos: [
+        ...camposViejos,
+        { id: 'talla_camiseta', label: 'Talla de camiseta', tipo: 'select', opciones: [] },
+      ],
+    };
+    await repoForms.save(viejo);
+
+    // El catálogo ahora sí incluye desayuno → debe aparecer sin perder el campo custom.
+    doc.incluye = ['Desayuno + bebida', 'Almuerzo playero + bebida'];
+    const segunda = await ds.transaction((em) => aplicarDocumentoTour(em, doc, ctx));
+    assert.equal(segunda.formularioPublicado, true);
+
+    const publicado = await repoForms.findOneOrFail({
+      where: { tour_id: tourId, estado: 'publicada' },
+    });
+    const campos = (publicado.definicion as { campos: Record<string, unknown>[] }).campos;
+    assert.ok(campos.some((c) => c.id === 'sabor_desayuno'));
+    assert.ok(campos.some((c) => c.id === 'talla_camiseta'));
+    // Una sola versión publicada (la vieja quedó archivada).
+    const publicadas = await repoForms.find({ where: { tour_id: tourId, estado: 'publicada' } });
+    assert.equal(publicadas.length, 1);
   });
 
   it('sin puntos propios hereda los del catálogo global, y con un solo precio deriva las categorías', async () => {
