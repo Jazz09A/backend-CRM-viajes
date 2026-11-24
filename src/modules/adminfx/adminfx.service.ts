@@ -33,7 +33,7 @@ import {
 } from '../../database/entities';
 import { ApiError } from '../../common/errors';
 import { hashPassword, sha256Hex } from '../../common/crypto.util';
-import { descifrarONull } from '../../common/datos-sensibles';
+import { descifrarONull, indiceDocumento } from '../../common/datos-sensibles';
 import { ArchivosService } from '../archivos/archivos.service';
 import { ReservasService } from '../reservas/reservas.service';
 import { ReservaStateMachine } from '../reservas/reserva-state-machine';
@@ -77,6 +77,9 @@ const ROL_A_FE: Record<string, string> = {
   guia: 'GU',
 };
 const ROL_A_BE: Record<string, string> = { SA: 'superadmin', AD: 'administrador', OP: 'operador', VAL: 'validador', GU: 'guia' };
+
+/** Tipos de documento que usa el índice ciego `documento_idx`. */
+const TIPOS_DOCUMENTO = ['V', 'E', 'P', 'OTRO'] as const;
 
 @Injectable()
 export class AdminFxService {
@@ -1786,10 +1789,23 @@ export class AdminFxService {
 
   /** Resuelve un cliente por `cliente.id`, `doc_idx` o id de pasajero legado. */
   private async resolverCliente(id: string): Promise<{ cliente: Cliente | null; docIdx: string | null; pasajeros: Pasajero[] }> {
-    let cliente = await this.clienteRepo.findOne({ where: { id } });
+    // Las columnas `id` son UUID: un id legado numérico (p. ej. "24276867")
+    // hace que Postgres lance `invalid input syntax for type uuid` antes de
+    // llegar a los criterios `doc_idx`/pasajero. Sólo se consultan cuando el
+    // valor tiene formato UUID.
+    const esUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    let cliente: Cliente | null = null;
+    if (esUuid) cliente = await this.clienteRepo.findOne({ where: { id } });
     if (!cliente) cliente = await this.clienteRepo.findOne({ where: { doc_idx: id } });
     let docIdx = cliente?.doc_idx ?? null;
-    if (!docIdx) {
+    if (!docIdx && !esUuid) {
+      // La ficha de reserva envía el documento en claro del titular: se
+      // resuelve calculando el índice ciego para cada tipo de documento.
+      const indices = TIPOS_DOCUMENTO.map((tipo) => indiceDocumento(tipo, id));
+      const p = await this.pasajeros.findOne({ where: { documento_idx: In(indices) } });
+      docIdx = p?.documento_idx ?? null;
+    }
+    if (!docIdx && esUuid) {
       const p = await this.pasajeros.findOne({ where: { id } });
       docIdx = p?.documento_idx ?? null;
     }
