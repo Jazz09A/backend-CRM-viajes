@@ -12,9 +12,6 @@ services:
     ports:
       # Sólo loopback: nginx (api.escapatetour.app) termina el TLS en 443.
       - "127.0.0.1:8100:8000"
-    volumes:
-      # Comprobantes, firmas, vouchers y exportaciones (STORAGE_DRIVER=local).
-      - /home/alvaro/data/storage:/app/data/storage
     healthcheck:
       test:
         - CMD
