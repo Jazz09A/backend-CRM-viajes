@@ -60,7 +60,9 @@ export const CONFIG_POR_DEFECTO: Record<string, unknown> = {
 
 /** Puntos de salida globales con los que arranca toda instalación. */
 export const PUNTOS_SALIDA_INICIALES = [
-  { clave: 'guatire', nombre: 'Guatire', ciudad: 'Guatire', hora: '06:00', referencia: 'Punto de encuentro en el centro de Guatire.', seleccionable: true, orden: 0 },
+  // Guatire tiene un solo punto: se elige la ciudad y el punto va incluido
+  // (no es elegible directamente, igual que los puntos de Caracas).
+  { clave: 'guatire', nombre: 'Kiosco blanco (al lado de La Colmena)', ciudad: 'Guatire', hora: '06:00', referencia: 'Al lado de La Colmena.', seleccionable: false, orden: 0 },
   { clave: 'guarenas', nombre: 'Guarenas', ciudad: 'Guarenas', hora: '06:30', referencia: 'Punto de encuentro en el centro de Guarenas.', seleccionable: true, orden: 1 },
   // En Caracas el punto no lo elige el cliente: se confirma por WhatsApp.
   { clave: 'caracas', nombre: 'Caracas', ciudad: 'Caracas', hora: '07:00', referencia: 'Punto de encuentro en Caracas.', seleccionable: false, orden: 2 },

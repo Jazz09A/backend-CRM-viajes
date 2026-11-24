@@ -11,6 +11,7 @@ import {
   Pago,
   Reserva,
   Tour,
+  TourPuntoAbordaje,
   Voucher,
 } from '../../database/entities';
 import { ArchivosModule } from '../archivos/archivos.module';
@@ -28,6 +29,7 @@ import { VoucherPdfService } from './voucher-pdf.service';
       Pago,
       FechaTour,
       Tour,
+      TourPuntoAbordaje,
       Firma,
       Configuracion,
       OutboxEvento,

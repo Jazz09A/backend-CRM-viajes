@@ -307,9 +307,9 @@ export class PublicoService {
       campos = campos.filter((c) => !esCampoComida(c));
     }
     // Punto de salida: las opciones vienen del catálogo global en cada render.
-    // Los `seleccionable` entran al selector y, si hay puntos de Caracas como
-    // referencia, se añade la pseudo-opción `caracas` (punto por confirmar);
-    // los puntos de referencia se envían aparte para sugerirse en la UI.
+    // Los `seleccionable` entran al selector y, por cada ciudad sin puntos
+    // elegibles, se añade una opción de ciudad (punto único real o pseudo
+    // «punto por confirmar»); los puntos de referencia van en `puntos_referencia`.
     return campos.map((c) =>
       esCampoPuntoSalida(c)
         ? { ...c, opciones: this.opcionesPuntos(ctx), puntos_referencia: this.puntosReferencia(ctx) }
@@ -318,30 +318,91 @@ export class PublicoService {
   }
 
   private opcionesPuntos(ctx: Contexto): CampoDef['opciones'] {
-    const opciones = ctx.puntos
+    const conOrden: { opcion: { valor: string; label: string }; orden: number }[] = ctx.puntos
       .filter((p) => p.activo && p.seleccionable !== false)
-      .map((p) => ({ valor: p.clave, label: `${p.nombre}, ${horaLegible(p.hora)}` }));
-    // Caracas sí es elegible como ciudad: la pseudo-opción guarda la decisión
-    // y el punto definitivo se confirma después por WhatsApp (los puntos reales
-    // de Caracas siguen saliendo en `puntos_referencia` como sugerencia).
-    const hayCaracas = ctx.puntos.some(
-      (p) => p.activo && p.seleccionable === false && (p.ciudad ?? '').toLowerCase().includes('caracas'),
-    );
-    if (hayCaracas) {
-      opciones.push({ valor: 'caracas', label: 'Caracas — punto por confirmar' });
+      .map((p) => ({
+        opcion: { valor: p.clave, label: `${p.nombre}, ${horaLegible(p.hora)}` },
+        orden: p.orden ?? 0,
+      }));
+    // Ciudades sin puntos elegibles se ofrecen a nivel ciudad:
+    // - Un solo punto de referencia (p. ej. Guatire → kiosco): la opción usa
+    //   la clave real del punto y muestra su nombre.
+    // - Varios puntos (p. ej. Caracas): pseudo-opción «punto por confirmar»;
+    //   el punto definitivo se coordina después por WhatsApp y los puntos
+    //   reales siguen en `puntos_referencia` como sugerencia.
+    for (const { ciudad, puntos } of this.ciudadesSinElegibles(ctx)) {
+      const orden = Math.min(...puntos.map((p) => p.orden ?? 0));
+      if (puntos.length === 1) {
+        const p = puntos[0];
+        conOrden.push({
+          opcion: { valor: p.clave, label: `${ciudad} — ${p.nombre}` },
+          orden,
+        });
+      } else {
+        conOrden.push({
+          opcion: { valor: this.slugCiudad(ciudad), label: `${ciudad} — punto por confirmar` },
+          orden,
+        });
+      }
     }
-    return opciones;
+    // El orden del catálogo manda: la pseudo-opción de ciudad ocupa la
+    // posición de su primer punto (Guatire sigue antes que Guarenas).
+    return conOrden.sort((a, b) => a.orden - b.orden).map((e) => e.opcion);
+  }
+
+  /**
+   * Ciudades que tienen puntos de referencia activos pero **ningún** punto
+   * elegible: el cliente elige la ciudad y el punto se resuelve solo
+   * (uno solo) o se confirma después (varios).
+   */
+  private ciudadesSinElegibles(ctx: Contexto): { ciudad: string; puntos: PuntoSalida[] }[] {
+    const porCiudad = new Map<string, PuntoSalida[]>();
+    for (const p of ctx.puntos) {
+      if (!p.activo) continue;
+      const ciudad = (p.ciudad ?? '').trim();
+      if (!ciudad) continue;
+      const clave = ciudad.toLowerCase();
+      const lista = porCiudad.get(clave) ?? [];
+      lista.push(p);
+      porCiudad.set(clave, lista);
+    }
+    const resultado: { ciudad: string; puntos: PuntoSalida[] }[] = [];
+    for (const lista of porCiudad.values()) {
+      const elegibles = lista.filter((p) => p.seleccionable !== false);
+      const referencia = lista.filter((p) => p.seleccionable === false);
+      if (elegibles.length === 0 && referencia.length > 0) {
+        resultado.push({ ciudad: lista[0].ciudad!.trim(), puntos: referencia });
+      }
+    }
+    return resultado;
+  }
+
+  /** Clave de la pseudo-opción de ciudad (`Caracas` → `caracas`). */
+  private slugCiudad(ciudad: string): string {
+    return ciudad
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
   }
 
   /**
    * Puntos activos que el cliente NO puede elegir, agrupados por ciudad.
    * El formulario los muestra en un bloque informativo aparte (los de
    * Caracas se confirman después por el grupo de viaje / WhatsApp).
+   * El punto único que respalda una pseudo-opción de ciudad no se repite
+   * aquí: ya es elegible a través de esa opción.
    */
   private puntosReferencia(ctx: Contexto): NonNullable<CampoDef['puntos_referencia']> {
+    const respaldados = new Set(
+      this.ciudadesSinElegibles(ctx)
+        .filter((g) => g.puntos.length === 1)
+        .map((g) => g.puntos[0].clave),
+    );
     const grupos = new Map<string, { clave: string; nombre: string; hora: string; referencia: string | null }[]>();
     for (const p of ctx.puntos) {
-      if (!p.activo || p.seleccionable !== false) continue;
+      if (!p.activo || p.seleccionable !== false || respaldados.has(p.clave)) continue;
       const ciudad = (p.ciudad ?? '').trim() || 'Otros puntos';
       const lista = grupos.get(ciudad) ?? [];
       lista.push({ clave: p.clave, nombre: p.nombre, hora: horaLegible(p.hora), referencia: p.referencia ?? null });
@@ -353,7 +414,8 @@ export class PublicoService {
   /**
    * Rechaza respuestas cuyo punto de salida no esté en la lista de opciones
    * (los puntos de referencia, p. ej. los específicos de Caracas, no son
-   * elegibles; sí lo es la pseudo-opción `caracas` que se confirma después).
+   * elegibles; sí lo son las opciones de ciudad: la pseudo-opción `caracas`
+   * o el punto único que la respalda, como el kiosco de Guatire).
    */
   private validarPuntosSeleccionables(
     ctx: Contexto,

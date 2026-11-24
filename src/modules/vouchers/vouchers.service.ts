@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import QRCode from 'qrcode';
-import { Archivo, Configuracion, Firma, OutboxEvento, PlantillaTerminosVersion, Reserva, Voucher, Pasajero, Pago, FechaTour, Tour, PuntoSalida } from '../../database/entities';
+import { Archivo, Configuracion, Firma, OutboxEvento, PlantillaTerminosVersion, Reserva, Voucher, Pasajero, Pago, FechaTour, Tour, PuntoSalida, TourFormVersion, TourPuntoAbordaje } from '../../database/entities';
 import { ApiError } from '../../common/errors';
 import { ArchivosService } from '../archivos/archivos.service';
 import { VoucherPdfService } from './voucher-pdf.service';
@@ -27,6 +27,8 @@ export class VouchersService {
     @InjectRepository(Tour) private readonly tours: Repository<Tour>,
     @InjectRepository(Firma) private readonly firmas: Repository<Firma>,
     @InjectRepository(PuntoSalida) private readonly puntos: Repository<PuntoSalida>,
+    @InjectRepository(TourFormVersion) private readonly formVersions: Repository<TourFormVersion>,
+    @InjectRepository(TourPuntoAbordaje) private readonly tourPuntos: Repository<TourPuntoAbordaje>,
     @InjectRepository(Configuracion) private readonly configRepo: Repository<Configuracion>,
     private readonly archivosService: ArchivosService,
     private readonly pdfService: VoucherPdfService,
@@ -154,15 +156,30 @@ export class VouchersService {
     const globales = (reserva.respuestas_globales ?? {}) as Record<string, unknown>;
     const claveGlobal = typeof globales['punto_abordaje'] === 'string' ? String(globales['punto_abordaje']) : '';
     // Sólo los puntos activos sirven para traducir claves → nombre legible.
-    const puntosPorClave = new Map(
-      (await this.puntos.find()).map((p) => [p.clave, `${p.nombre} (${horaLegible(p.hora)})`]),
-    );
+    const [puntosCat, puntosTour] = await Promise.all([
+      this.puntos.find(),
+      this.tourPuntos.find({ where: { tour_id: tour.id, activo: true } }),
+    ]);
+    const puntosPorClave = new Map(puntosCat.map((p) => [p.clave, p.nombre]));
+    // La hora de recogida es por tour (`tour_punto_abordaje`), no la del
+    // catálogo global; si la hora se confirma después se indica.
+    const puntosDelTour = new Map(puntosTour.map((p) => [p.clave, p]));
     const nombrePunto = (clave: string): string => {
       if (!clave) return 'Por definir';
       // Pseudo-clave del selector de ciudades: el punto exacto de Caracas se
       // confirma después por WhatsApp.
       if (clave === 'caracas') return 'Caracas — punto por confirmar';
-      return puntosPorClave.get(clave) ?? clave.replace(/_/g, ' ');
+      const delTour = puntosDelTour.get(clave);
+      if (delTour) {
+        const hora = delTour.confirmar_hora
+          ? 'hora por confirmar'
+          : delTour.hora
+            ? horaLegible(delTour.hora)
+            : '';
+        return hora ? `${delTour.nombre} (${hora})` : delTour.nombre;
+      }
+      const nombre = puntosPorClave.get(clave) ?? clave.replace(/_/g, ' ');
+      return nombre;
     };
     // Cada pasajero puede salir de un punto distinto (salida personalizada);
     // si no respondió, hereda el punto global de la reserva.
@@ -173,6 +190,44 @@ export class VouchersService {
     };
     // El titular resume la salida en la cabecera; cada fila lleva su propio punto.
     const puntoAbordaje = titular ? puntoDePasajero(titular) : nombrePunto(claveGlobal);
+    // Con más de un punto distinto entre pasajeros, cada fila muestra su
+    // "Salida:" para identificarlos (si no, basta el punto de la cabecera).
+    const multiplesPuntos = new Set(pasajeros.map((p) => puntoDePasajero(p))).size > 1;
+
+    // Formulario con el que se registró la reserva: traduce las respuestas
+    // por pasajero (almuerzo, sabor de empanada…) a etiquetas legibles.
+    const formVersion = reserva.form_version_id
+      ? await this.formVersions.findOne({ where: { id: reserva.form_version_id } })
+      : await this.formVersions.findOne({ where: { tour_id: tour.id, estado: 'publicada' } });
+    const camposForm =
+      ((formVersion?.definicion ?? {}) as { campos?: Record<string, unknown>[] }).campos ?? [];
+    const etiquetaOpcion = (campo: Record<string, unknown>, valor: unknown): string => {
+      const opciones = Array.isArray(campo.opciones) ? campo.opciones : [];
+      const op = opciones.find((o) => (o as { valor?: unknown })?.valor === valor) as
+        | { label?: string }
+        | undefined;
+      return op?.label ?? String(valor);
+    };
+    const seleccionesDe = (p: Pasajero): string[] => {
+      const respuestas = (p.respuestas ?? {}) as Record<string, unknown>;
+      const out: string[] = [];
+      for (const campo of camposForm) {
+        const id = String(campo?.id ?? '');
+        const tipo = String(campo?.tipo ?? '');
+        if (!id || id === 'punto_abordaje') continue;
+        if (tipo !== 'select' && tipo !== 'multiselect') continue;
+        const valor = respuestas[id];
+        if (valor === undefined || valor === null || valor === '') continue;
+        const valores = (Array.isArray(valor) ? valor : [valor]).filter(
+          (v): v is string => typeof v === 'string' && v !== '',
+        );
+        if (!valores.length) continue;
+        out.push(
+          `${String(campo.label ?? id)}: ${valores.map((v) => etiquetaOpcion(campo, v)).join(', ')}`,
+        );
+      }
+      return out;
+    };
 
     const [firmaEmpresaDataUrl, firmaCliente, configAgencia] = await Promise.all([
       this.dataUrlFirmaEmpresa(),
@@ -203,6 +258,7 @@ export class VouchersService {
       fechaSalida: fecha.fecha_salida,
       horaSalida: fecha.hora_salida,
       puntoAbordaje,
+      multiplesPuntos,
       pasajeros: pasajeros.map((p) => {
         const respuestas = (p.respuestas ?? {}) as Record<string, unknown>;
         const detalle =
@@ -220,7 +276,7 @@ export class VouchersService {
           documento: p.documento_ultimos4 ? `***${p.documento_ultimos4}` : 'Sin documento',
           // Punto de salida propio del pasajero (si lo definió) o el de la reserva.
           puntoAbordaje: puntoDePasajero(p),
-          selecciones: [], // TODO: obtener del formulario
+          selecciones: seleccionesDe(p),
           // Condición médica declarada por pasajero (campo `detalle_alergias`).
           alergias: detalle ? detalle : undefined,
         };
