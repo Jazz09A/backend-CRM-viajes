@@ -50,7 +50,21 @@ export class ProblemDetailsFilter implements ExceptionFilter {
         };
       }
     } else {
-      const err = exception as Error;
+      const err = exception as Error & { code?: string; driverError?: { code?: string } };
+      // Postgres 22P02 (`invalid input syntax for type uuid`): un id de ruta
+      // malformado (p. ej. basura de un crawler o un id legado numérico) no
+      // puede corresponder a ningún recurso → 404, no 500.
+      if (err?.code === '22P02' || err?.driverError?.code === '22P02') {
+        status = HttpStatus.NOT_FOUND;
+        body = {
+          tipo: 'https://agencia-viajes.local/errores/NO_ENCONTRADO',
+          codigo: 'NO_ENCONTRADO',
+          mensaje: 'No encontrado',
+          request_id: request.requestId,
+        };
+        void reply.status(status).send(body);
+        return;
+      }
       this.logger.error(`Error no controlado: ${err?.message}`, err?.stack);
       body = {
         tipo: 'https://agencia-viajes.local/errores/ERROR_INTERNO',
