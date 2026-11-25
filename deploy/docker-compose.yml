@@ -1,9 +1,9 @@
 # ──────────────────────────────────────────────────────────────────────────
 # Producción — api.escapatetour.app
 #
-# Ubicación en el server: /opt/escapatetour/backend/docker-compose.yml
+# Ubicación en el server: /home/alvaro/docker-compose.yml
 # El .env se genera desde GitHub Secrets por el workflow cd-backend.yml
-# Ubicación del .env: /opt/escapatetour/backend/.env
+# Ubicación del .env: /home/alvaro/.env
 # ──────────────────────────────────────────────────────────────────────────
 
 services:

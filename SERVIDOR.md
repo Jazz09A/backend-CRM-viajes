@@ -4,7 +4,7 @@
 
 Estructura en el servidor:
 ```
-/opt/escapatetour/backend/
+/home/alvaro/
 ├── docker-compose.yml      # Configuración de Docker Compose
 ├── .env                    # Variables de entorno (generado por CD)
 └── data/                   # Volumen para archivos locales (si STORAGE_DRIVER=local)
@@ -12,7 +12,7 @@ Estructura en el servidor:
 
 ## Docker Compose
 
-El archivo `docker-compose.yml` está en `/opt/escapatetour/backend/docker-compose.yml` y usa `.env` del mismo directorio.
+El archivo `docker-compose.yml` está en `/home/alvaro/docker-compose.yml` y usa `.env` del mismo directorio.
 
 ## Variables de entorno
 
@@ -28,7 +28,7 @@ Si necesitas hacer deploy manual sin pasar por GitHub Actions:
 
 ```bash
 ssh -p 2222 alvaro@62.171.175.92
-cd /opt/escapatetour/backend
+cd /home/alvaro
 docker compose pull
 docker compose up -d
 ```
@@ -46,6 +46,6 @@ docker logs -f agencia-viajes-api
 Reiniciar el contenedor:
 ```bash
 ssh -p 2222 alvaro@62.171.175.92
-cd /opt/escapatetour/backend
+cd /home/alvaro
 docker compose restart
 ```
