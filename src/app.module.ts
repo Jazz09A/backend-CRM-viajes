@@ -23,6 +23,7 @@ import { ReportesModule } from './modules/reportes/reportes.module';
 import { ExportacionesModule } from './modules/exportaciones/exportaciones.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { AdminFxModule } from './modules/adminfx/adminfx.module';
+import { MetricsModule } from './modules/metrics/metrics.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { AdminFxModule } from './modules/adminfx/adminfx.module';
     ExportacionesModule,
     JobsModule,
     AdminFxModule,
+    MetricsModule,
   ],
   providers: [
     // Guards globales: JWT en todo salvo @Public(); RBAC donde haya @Roles().

@@ -28,6 +28,7 @@ export interface AppConfig {
    */
   cookieSameSite: 'lax' | 'strict' | 'none';
   fileSigningSecret: string;
+  metricsEnabled?: boolean;
 }
 
 export function loadConfig(): AppConfig {
@@ -79,5 +80,6 @@ export function loadConfig(): AppConfig {
       return v as 'lax' | 'strict' | 'none';
     })(),
     fileSigningSecret: process.env.FILE_SIGNING_SECRET ?? 'dev-file-secret-cambiar',
+    metricsEnabled: process.env.METRICS_ENABLED !== 'false',
   };
 }

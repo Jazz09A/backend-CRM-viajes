@@ -7,6 +7,8 @@ import { AppModule } from './app.module';
 import { loadConfig } from './config/configuration';
 import { ProblemDetailsFilter } from './common/filters/problem-details.filter';
 import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor';
+import { MetricsInterceptor } from './modules/metrics/metrics.interceptor';
+import { MetricsService } from './modules/metrics/metrics.service';
 
 async function bootstrap() {
   const config = loadConfig();
@@ -19,7 +21,7 @@ async function bootstrap() {
   );
 
   await app.register(fastifyMultipart, { limits: { fileSize: 10 * 1024 * 1024 } });
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1', { exclude: ['metrics'] });
   app.enableCors({
     origin: config.corsOrigins,
     credentials: true,
@@ -37,6 +39,14 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new ProblemDetailsFilter());
   app.useGlobalInterceptors(new RequestIdInterceptor());
+
+  // Interceptor de métricas HTTP — comparte el registry de MetricsService
+  // para que aparezcan en GET /metrics. Desactivable con METRICS_ENABLED=false.
+  const metricsEnabled = process.env.METRICS_ENABLED !== 'false';
+  if (metricsEnabled) {
+    app.useGlobalInterceptors(new MetricsInterceptor(app.get(MetricsService)));
+  }
+
   app.enableShutdownHooks();
 
   await app.listen(config.port, '0.0.0.0');
