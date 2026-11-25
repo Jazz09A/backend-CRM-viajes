@@ -88,5 +88,5 @@ jobs:
           ssh -p 2222 alvaro@62.171.175.92 \
             'docker pull ghcr.io/jazz09a/backend-crm-viajes:latest &&
              docker compose -f /home/alvaro/docker-compose.yml up -d &&
-             sleep 5 &&
+             sleep 60 &&
              curl -sf https://api.escapatetour.app/api/v1/ready > /dev/null && echo "BACKEND_OK" || echo "BACKEND_FAILED"'
