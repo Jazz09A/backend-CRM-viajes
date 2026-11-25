@@ -322,7 +322,7 @@ export function generarHtmlVoucher(datos: VoucherTemplateData): string {
     }
     .firma-caja {
       position: relative;
-      height: 100px;
+      height: 500px;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
