@@ -322,14 +322,14 @@ export function generarHtmlVoucher(datos: VoucherTemplateData): string {
     }
     .firma-caja {
       position: relative;
-      height: 500px;
+      height: 180px;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
       align-items: flex-start;
     }
     .firma-caja img {
-      max-height: 80px;
+      max-height: 120px;
       max-width: 100%;
       object-fit: contain;
       margin-bottom: 2px;
