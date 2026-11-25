@@ -59,35 +59,33 @@ jobs:
             "mkdir -p ~/.docker && printf '%s' '{\"auths\":{\"ghcr.io\":{\"auth\":\"'$(printf '%s:%s' "$GHCR_USER" "$GHCR_TOKEN" | base64 -w0)'\"}}}' > ~/.docker/config.json && chmod 600 ~/.docker/config.json"
           # Crear .env en el servidor desde los secrets de GitHub
           # Ubicación: /home/alvaro/.env (mismo directorio que docker-compose.yml)
-          # Nota: usar <<EOF (sin comillas) para que las variables se expandan
-          ssh -p 2222 alvaro@62.171.175.92 \
-            "cat > /home/alvaro/.env <<EOF
-          DB_DRIVER=postgres
-          PORT=8000
-          CORS_ORIGINS=https://admin.escapatetour.app
-          DATABASE_URL=${DATABASE_URL}
-          JWT_SECRET=${JWT_SECRET}
-          JWT_ACCESS_TTL=15m
-          JWT_REFRESH_TTL_DAYS=30
-          DATA_ENCRYPTION_KEY=${DATA_ENCRYPTION_KEY}
-          DATA_INDEX_HMAC_KEY=${DATA_INDEX_HMAC_KEY}
-          STORAGE_DRIVER=s3
-          STORAGE_LOCAL_DIR=./data/storage
-          S3_ENDPOINT=${S3_ENDPOINT}
-          S3_REGION=${S3_REGION}
-          S3_BUCKET=${S3_BUCKET}
-          S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
-          S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
-          S3_FORCE_PATH_STYLE=true
-          SIGNED_URL_TTL_SECONDS=300
-          PUBLIC_APP_URL=${PUBLIC_APP_URL}
-          PUBLIC_API_URL=${PUBLIC_API_URL}
-          COOKIE_SAMESITE=none
-          FILE_SIGNING_SECRET=${FILE_SIGNING_SECRET}
-          EOF
-          chmod 600 /home/alvaro/.env"
+          # Generar .env limpio sin indentación y enviarlo por SSH
+          cat <<'ENVFILE' | ssh -p 2222 alvaro@62.171.175.92 "cat > /home/alvaro/.env && chmod 600 /home/alvaro/.env"
+DB_DRIVER=postgres
+PORT=8000
+CORS_ORIGINS=https://admin.escapatetour.app
+DATABASE_URL=${DATABASE_URL}
+JWT_SECRET=${JWT_SECRET}
+JWT_ACCESS_TTL=15m
+JWT_REFRESH_TTL_DAYS=30
+DATA_ENCRYPTION_KEY=${DATA_ENCRYPTION_KEY}
+DATA_INDEX_HMAC_KEY=${DATA_INDEX_HMAC_KEY}
+STORAGE_DRIVER=s3
+STORAGE_LOCAL_DIR=./data/storage
+S3_ENDPOINT=${S3_ENDPOINT}
+S3_REGION=${S3_REGION}
+S3_BUCKET=${S3_BUCKET}
+S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
+S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+S3_FORCE_PATH_STYLE=true
+SIGNED_URL_TTL_SECONDS=300
+PUBLIC_APP_URL=${PUBLIC_APP_URL}
+PUBLIC_API_URL=${PUBLIC_API_URL}
+COOKIE_SAMESITE=none
+FILE_SIGNING_SECRET=${FILE_SIGNING_SECRET}
+ENVFILE
           ssh -p 2222 alvaro@62.171.175.92 \
             'docker pull ghcr.io/jazz09a/backend-crm-viajes:latest &&
-             docker compose -f /home/alvaro/docker-compose.yml up -d &&
+             docker compose -f /home/alvaro/docker-compose.yml --env-file /home/alvaro/.env up -d --force-recreate &&
              sleep 60 &&
              curl -sf https://api.escapatetour.app/api/v1/ready > /dev/null && echo "BACKEND_OK" || echo "BACKEND_FAILED"'
