@@ -59,8 +59,9 @@ jobs:
             "mkdir -p ~/.docker && printf '%s' '{\"auths\":{\"ghcr.io\":{\"auth\":\"'$(printf '%s:%s' "$GHCR_USER" "$GHCR_TOKEN" | base64 -w0)'\"}}}' > ~/.docker/config.json && chmod 600 ~/.docker/config.json"
           # Crear .env en el servidor desde los secrets de GitHub
           # Ubicación: /home/alvaro/.env (mismo directorio que docker-compose.yml)
+          # Nota: usar <<EOF (sin comillas) para que las variables se expandan
           ssh -p 2222 alvaro@62.171.175.92 \
-            "cat > /home/alvaro/.env <<'EOF'
+            "cat > /home/alvaro/.env <<EOF
           DB_DRIVER=postgres
           PORT=8000
           CORS_ORIGINS=https://admin.escapatetour.app
