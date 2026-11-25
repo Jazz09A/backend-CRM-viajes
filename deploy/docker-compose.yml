@@ -1,9 +1,9 @@
 # ──────────────────────────────────────────────────────────────────────────
-# Producción — api.escapatetour.app (Fase 4 del plan)
+# Producción — api.escapatetour.app
 #
 # Ubicación en el server: /opt/escapatetour/backend/docker-compose.yml
-# El .env real vive al lado (/opt/escapatetour/backend/.env) — NO versionar.
-# El workflow deploy-production.yml hace: pull && up -d en este archivo.
+# El .env se genera desde GitHub Secrets por el workflow cd-backend.yml
+# Ubicación del .env: /opt/escapatetour/backend/.env
 # ──────────────────────────────────────────────────────────────────────────
 
 services:
