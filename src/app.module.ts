@@ -23,6 +23,8 @@ import { ReportesModule } from './modules/reportes/reportes.module';
 import { ExportacionesModule } from './modules/exportaciones/exportaciones.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { AdminFxModule } from './modules/adminfx/adminfx.module';
+import { MetricsModule } from './modules/metrics/metrics.module';
+import { MetricsInterceptor } from './modules/metrics/metrics.interceptor';
 
 @Module({
   imports: [
@@ -57,11 +59,26 @@ import { AdminFxModule } from './modules/adminfx/adminfx.module';
     ExportacionesModule,
     JobsModule,
     AdminFxModule,
+    MetricsModule,
   ],
   providers: [
     // Guards globales: JWT en todo salvo @Public(); RBAC donde haya @Roles().
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    // Interceptor global de métricas (solo si METRICS_ENABLED=true en config)
+    {
+      provide: 'METRICS_ENABLED',
+      useFactory: (config: ConfigService<AppConfig, true>) => {
+        const v = (process.env.METRICS_ENABLED ?? 'true').toLowerCase();
+        return v !== 'false';
+      },
+      inject: [ConfigService],
+    },
+    {
+      provide: MetricsInterceptor,
+      useFactory: (enabled: boolean) => enabled ? new MetricsInterceptor() : null,
+      inject: ['METRICS_ENABLED'],
+    },
   ],
 })
 export class AppModule {}

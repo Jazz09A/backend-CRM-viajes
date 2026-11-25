@@ -19,7 +19,7 @@ async function bootstrap() {
   );
 
   await app.register(fastifyMultipart, { limits: { fileSize: 10 * 1024 * 1024 } });
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1', { exclude: ['metrics'] });
   app.enableCors({
     origin: config.corsOrigins,
     credentials: true,
@@ -37,6 +37,13 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new ProblemDetailsFilter());
   app.useGlobalInterceptors(new RequestIdInterceptor());
+
+  // Registrar interceptor de métricas de forma condicional
+  const metricsEnabled = process.env.METRICS_ENABLED !== 'false';
+  if (metricsEnabled) {
+    app.useGlobalInterceptors(new MetricsInterceptor());
+  }
+
   app.enableShutdownHooks();
 
   await app.listen(config.port, '0.0.0.0');
