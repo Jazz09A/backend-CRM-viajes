@@ -7,6 +7,8 @@ import { AppModule } from './app.module';
 import { loadConfig } from './config/configuration';
 import { ProblemDetailsFilter } from './common/filters/problem-details.filter';
 import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor';
+import { MetricsInterceptor } from './modules/metrics/metrics.interceptor';
+import { MetricsService } from './modules/metrics/metrics.service';
 
 async function bootstrap() {
   const config = loadConfig();
@@ -38,10 +40,11 @@ async function bootstrap() {
   app.useGlobalFilters(new ProblemDetailsFilter());
   app.useGlobalInterceptors(new RequestIdInterceptor());
 
-  // Registrar interceptor de métricas de forma condicional
+  // Interceptor de métricas HTTP — comparte el registry de MetricsService
+  // para que aparezcan en GET /metrics. Desactivable con METRICS_ENABLED=false.
   const metricsEnabled = process.env.METRICS_ENABLED !== 'false';
   if (metricsEnabled) {
-    app.useGlobalInterceptors(new MetricsInterceptor());
+    app.useGlobalInterceptors(new MetricsInterceptor(app.get(MetricsService)));
   }
 
   app.enableShutdownHooks();
