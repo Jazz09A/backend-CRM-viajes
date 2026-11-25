@@ -87,10 +87,10 @@ jobs:
             "FILE_SIGNING_SECRET=${FILE_SIGNING_SECRET}" \
             > /tmp/env.production
           chmod 600 /tmp/env.production
-          scp -P 2222 /tmp/env.production alvaro@62.171.175.92:/home/alvaro/.env
-          ssh -p 2222 alvaro@62.171.175.92 "chmod 600 /home/alvaro/.env"
+          scp -P 2222 /tmp/env.production alvaro@62.171.175.92:/home/alvaro/.env.prod
+          ssh -p 2222 alvaro@62.171.175.92 "chmod 600 /home/alvaro/.env.prod"
           ssh -p 2222 alvaro@62.171.175.92 \
             'docker pull ghcr.io/jazz09a/backend-crm-viajes:latest &&
-             docker compose -f /home/alvaro/docker-compose.yml --env-file /home/alvaro/.env up -d --force-recreate &&
+             docker compose -f /home/alvaro/docker-compose.yml --env-file /home/alvaro/.env.prod up -d --force-recreate &&
              sleep 60 &&
              curl -sf https://api.escapatetour.app/api/v1/ready > /dev/null && echo "BACKEND_OK" || echo "BACKEND_FAILED"'
