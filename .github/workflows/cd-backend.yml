@@ -58,9 +58,9 @@ jobs:
           ssh -p 2222 alvaro@62.171.175.92 \
             "mkdir -p ~/.docker && printf '%s' '{\"auths\":{\"ghcr.io\":{\"auth\":\"'$(printf '%s:%s' "$GHCR_USER" "$GHCR_TOKEN" | base64 -w0)'\"}}}' > ~/.docker/config.json && chmod 600 ~/.docker/config.json"
           # Crear .env en el servidor desde los secrets de GitHub
-          # Ubicación: /opt/escapatetour/backend/.env (según docker-compose.yml)
+          # Ubicación: /home/alvaro/.env (mismo directorio que docker-compose.yml)
           ssh -p 2222 alvaro@62.171.175.92 \
-            "cat > /opt/escapatetour/backend/.env <<'EOF'
+            "cat > /home/alvaro/.env <<'EOF'
           DB_DRIVER=postgres
           PORT=8000
           CORS_ORIGINS=https://admin.escapatetour.app
@@ -84,9 +84,9 @@ jobs:
           COOKIE_SAMESITE=none
           FILE_SIGNING_SECRET=${FILE_SIGNING_SECRET}
           EOF
-          chmod 600 /opt/escapatetour/backend/.env"
+          chmod 600 /home/alvaro/.env"
           ssh -p 2222 alvaro@62.171.175.92 \
             'docker pull ghcr.io/jazz09a/backend-crm-viajes:latest &&
-             docker compose -f /opt/escapatetour/backend/docker-compose.yml up -d &&
+             docker compose -f /home/alvaro/docker-compose.yml up -d &&
              sleep 5 &&
              curl -sf https://api.escapatetour.app/api/v1/ready > /dev/null && echo "BACKEND_OK" || echo "BACKEND_FAILED"'
