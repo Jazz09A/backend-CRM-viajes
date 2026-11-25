@@ -59,8 +59,8 @@ jobs:
             "mkdir -p ~/.docker && printf '%s' '{\"auths\":{\"ghcr.io\":{\"auth\":\"'$(printf '%s:%s' "$GHCR_USER" "$GHCR_TOKEN" | base64 -w0)'\"}}}' > ~/.docker/config.json && chmod 600 ~/.docker/config.json"
           # Crear .env en el servidor desde los secrets de GitHub
           # Ubicación: /home/alvaro/.env (mismo directorio que docker-compose.yml)
-          # Generar .env limpio sin indentación y enviarlo por SSH
-          cat <<'ENVFILE' | ssh -p 2222 alvaro@62.171.175.92 "cat > /home/alvaro/.env && chmod 600 /home/alvaro/.env"
+          # Generar .env local y transferir con scp
+          cat > /tmp/env.production <<EOF
 DB_DRIVER=postgres
 PORT=8000
 CORS_ORIGINS=https://admin.escapatetour.app
@@ -83,7 +83,10 @@ PUBLIC_APP_URL=${PUBLIC_APP_URL}
 PUBLIC_API_URL=${PUBLIC_API_URL}
 COOKIE_SAMESITE=none
 FILE_SIGNING_SECRET=${FILE_SIGNING_SECRET}
-ENVFILE
+EOF
+          chmod 600 /tmp/env.production
+          scp -P 2222 /tmp/env.production alvaro@62.171.175.92:/home/alvaro/.env
+          ssh -p 2222 alvaro@62.171.175.92 "chmod 600 /home/alvaro/.env"
           ssh -p 2222 alvaro@62.171.175.92 \
             'docker pull ghcr.io/jazz09a/backend-crm-viajes:latest &&
              docker compose -f /home/alvaro/docker-compose.yml --env-file /home/alvaro/.env up -d --force-recreate &&
