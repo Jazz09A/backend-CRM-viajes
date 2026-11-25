@@ -60,11 +60,13 @@ jobs:
           # Crear .env en el servidor desde los secrets de GitHub
           # Ubicación: /home/alvaro/.env (mismo directorio que docker-compose.yml)
           # Generar .env localmente y transferir con scp
+          # Quitar channel_binding=require de DATABASE_URL (no soportado por pg driver)
+          DATABASE_URL_CLEAN=$(echo "${DATABASE_URL}" | sed 's/&channel_binding=require//g')
           printf '%s\n' \
             'DB_DRIVER=postgres' \
             'PORT=8000' \
             'CORS_ORIGINS=https://admin.escapatetour.app' \
-            "DATABASE_URL=${DATABASE_URL}" \
+            "DATABASE_URL=${DATABASE_URL_CLEAN}" \
             "JWT_SECRET=${JWT_SECRET}" \
             'JWT_ACCESS_TTL=15m' \
             'JWT_REFRESH_TTL_DAYS=30' \
