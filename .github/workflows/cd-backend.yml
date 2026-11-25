@@ -37,6 +37,19 @@ jobs:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Secrets de producción
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          DATA_ENCRYPTION_KEY: ${{ secrets.DATA_ENCRYPTION_KEY }}
+          DATA_INDEX_HMAC_KEY: ${{ secrets.DATA_INDEX_HMAC_KEY }}
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          S3_REGION: ${{ secrets.S3_REGION }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL }}
+          PUBLIC_API_URL: ${{ secrets.PUBLIC_API_URL }}
+          FILE_SIGNING_SECRET: ${{ secrets.FILE_SIGNING_SECRET }}
         run: |
           mkdir -p ~/.ssh && echo "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -p 2222 62.171.175.92 >> ~/.ssh/known_hosts 2>/dev/null
@@ -44,8 +57,36 @@ jobs:
           # de GHCR para poder hacer `docker pull`.
           ssh -p 2222 alvaro@62.171.175.92 \
             "mkdir -p ~/.docker && printf '%s' '{\"auths\":{\"ghcr.io\":{\"auth\":\"'$(printf '%s:%s' "$GHCR_USER" "$GHCR_TOKEN" | base64 -w0)'\"}}}' > ~/.docker/config.json && chmod 600 ~/.docker/config.json"
+          # Crear .env en el servidor desde los secrets de GitHub
+          # Ubicación: /opt/escapatetour/backend/.env (según docker-compose.yml)
+          ssh -p 2222 alvaro@62.171.175.92 \
+            "cat > /opt/escapatetour/backend/.env <<'EOF'
+          DB_DRIVER=postgres
+          PORT=8000
+          CORS_ORIGINS=https://admin.escapatetour.app
+          DATABASE_URL=${DATABASE_URL}
+          JWT_SECRET=${JWT_SECRET}
+          JWT_ACCESS_TTL=15m
+          JWT_REFRESH_TTL_DAYS=30
+          DATA_ENCRYPTION_KEY=${DATA_ENCRYPTION_KEY}
+          DATA_INDEX_HMAC_KEY=${DATA_INDEX_HMAC_KEY}
+          STORAGE_DRIVER=s3
+          STORAGE_LOCAL_DIR=./data/storage
+          S3_ENDPOINT=${S3_ENDPOINT}
+          S3_REGION=${S3_REGION}
+          S3_BUCKET=${S3_BUCKET}
+          S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
+          S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+          S3_FORCE_PATH_STYLE=true
+          SIGNED_URL_TTL_SECONDS=300
+          PUBLIC_APP_URL=${PUBLIC_APP_URL}
+          PUBLIC_API_URL=${PUBLIC_API_URL}
+          COOKIE_SAMESITE=none
+          FILE_SIGNING_SECRET=${FILE_SIGNING_SECRET}
+          EOF
+          chmod 600 /opt/escapatetour/backend/.env"
           ssh -p 2222 alvaro@62.171.175.92 \
             'docker pull ghcr.io/jazz09a/backend-crm-viajes:latest &&
-             docker compose -f /home/alvaro/docker-compose.yml up -d &&
+             docker compose -f /opt/escapatetour/backend/docker-compose.yml up -d &&
              sleep 5 &&
              curl -sf https://api.escapatetour.app/api/v1/ready > /dev/null && echo "BACKEND_OK" || echo "BACKEND_FAILED"'
