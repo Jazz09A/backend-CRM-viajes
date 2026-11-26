@@ -1,6 +1,6 @@
 {
   "name": "agencia-viajes-api",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "packageManager": "pnpm@11.20.0",
   "description": "Backend CRM, formularios dinámicos y reservas — NestJS + TypeScript",
