@@ -38,6 +38,26 @@ export class ArchivosService {
 
     await this.storage.put(bucketKey, buffer, mimeType);
 
+    // `bucket_key` tiene índice único y depende sólo del contenido + nombre:
+    // volver a subir el mismo archivo (p. ej. la firma de la empresa) chocaba
+    // con el registro existente y estallaba en 500 ERROR_INTERNO. Al ser la
+    // misma imagen, se reutiliza el registro en lugar de reinsertarlo; el
+    // `put` de arriba además repone el archivo si faltaba en el storage.
+    const existente = await this.archivos.findOne({ where: { bucket_key: bucketKey } });
+    if (existente) {
+      let cambio = false;
+      if (existente.subido_por == null && subidoPor) {
+        existente.subido_por = subidoPor;
+        cambio = true;
+      }
+      if (existente.reserva_id == null && reservaId) {
+        existente.reserva_id = reservaId;
+        cambio = true;
+      }
+      if (cambio) await this.archivos.save(existente);
+      return existente.id;
+    }
+
     const archivo = this.archivos.create({
       bucket_key: bucketKey,
       mime_real: mimeType,
